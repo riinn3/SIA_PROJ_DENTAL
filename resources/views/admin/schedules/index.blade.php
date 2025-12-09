@@ -47,37 +47,82 @@
         <div class="modal-dialog" role="document">
             <div class="modal-content">
                 <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title">Book Appointment</h5>
+                    <h5 class="modal-title"><i class="fas fa-calendar-plus mr-2"></i>Book Appointment</h5>
                     <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
                 </div>
-                <form action="{{ route('admin.appointments.store') }}" method="POST">
+                <form action="{{ route('admin.appointments.store_walkin') }}" method="POST">
                     @csrf
                     <div class="modal-body">
                         <input type="hidden" name="appointment_date" id="modalDate">
                         <input type="hidden" name="appointment_time" id="modalTime">
                         <input type="hidden" name="doctor_id" id="modalDoctor">
 
-                        <p>Booking for: <strong id="displayDateSlot"></strong></p>
+                        <div class="alert alert-info py-2">
+                            Booking for: <strong id="displayDateSlot"></strong>
+                        </div>
 
                         <div class="form-group">
-                            <label>Patient</label>
-                            <select name="user_id" class="form-control" required>
-                                @foreach(\App\Models\User::where('role', 'patient')->get() as $p)
-                                    <option value="{{ $p->id }}">{{ $p->name }}</option>
+                            <label class="font-weight-bold">Patient Type</label>
+                            <div class="btn-group btn-group-toggle w-100" data-toggle="buttons">
+                                <label class="btn btn-outline-primary active" onclick="togglePatientType('existing')">
+                                    <input type="radio" name="patient_type" value="existing" checked> Existing Record
+                                </label>
+                                <label class="btn btn-outline-primary" onclick="togglePatientType('new')">
+                                    <input type="radio" name="patient_type" value="new"> New / Walk-In
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="form-group" id="existingPatientGroup">
+                            <label>Select Patient</label>
+                            <select name="user_id" class="form-control">
+                                @foreach(\App\Models\User::where('role', 'patient')->orderBy('name')->get() as $p)
+                                    <option value="{{ $p->id }}">{{ $p->name }} ({{ $p->email }})</option>
                                 @endforeach
                             </select>
                         </div>
 
-                        <div class="form-group">
-                            <label>Service</label>
-                            <select name="service_id" class="form-control" required>
-                                @foreach(\App\Models\Service::all() as $s)
-                                    <option value="{{ $s->id }}">{{ $s->name }} - ₱{{ $s->price }}</option>
-                                @endforeach
-                            </select>
+                        <div id="newPatientGroup" style="display: none;">
+                            <div class="form-group">
+                                <label>Full Name <span class="text-danger">*</span></label>
+                                <input type="text" name="new_name" class="form-control" placeholder="e.g. Juan Dela Cruz">
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group col-md-6">
+                                    <label>Email (Optional)</label>
+                                    <input type="email" name="new_email" class="form-control" placeholder="juan@email.com">
+                                </div>
+                                <div class="form-group col-md-6">
+                                    <label>Phone <span class="text-danger">*</span></label>
+                                    <input type="text" name="new_phone" class="form-control" placeholder="09123456789">
+                                </div>
+                            </div>
                         </div>
+
+                        <hr>
+
+                        <div class="form-row">
+                            <div class="form-group col-md-8">
+                                <label class="font-weight-bold">Service</label>
+                                <select name="service_id" class="form-control" required>
+                                    @foreach(\App\Models\Service::all() as $s)
+                                        <option value="{{ $s->id }}">{{ $s->name }} - ₱{{ number_format($s->price) }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="form-group col-md-4">
+                                <label class="font-weight-bold">Duration</label>
+                                <select name="duration" class="form-control">
+                                    <option value="1">1 Hour</option>
+                                    <option value="2">2 Hours</option>
+                                    <option value="3">3 Hours</option>
+                                </select>
+                            </div>
+                        </div>
+                        <small class="text-muted">Note: Extending duration will block adjacent slots automatically.</small>
                     </div>
                     <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
                         <button type="submit" class="btn btn-success">Confirm Booking</button>
                     </div>
                 </form>
@@ -97,101 +142,100 @@
 
             var calendar = new FullCalendar.Calendar(calendarEl, {
                 initialView: 'dayGridMonth',
-                height: 650, // <--- FIXED HEIGHT (Makes it smaller)
-                contentHeight: 600,
-                aspectRatio: 1.5,
+                height: 650, 
                 headerToolbar: {
                     left: 'prev,next today',
                     center: 'title',
                     right: 'dayGridMonth'
                 },
-                
-                // Fetch events from API
+                // Fetch colored bars (Availability)
                 events: function(info, successCallback, failureCallback) {
                     var doctorId = doctorSelect.value;
                     var url = "{{ route('admin.api.calendar') }}?doctor_id=" + doctorId + "&start=" + info.startStr + "&end=" + info.endStr;
-
-                    fetch(url)
-                        .then(response => response.json())
-                        .then(data => successCallback(data))
-                        .catch(error => failureCallback(error));
+                    fetch(url).then(r => r.json()).then(data => successCallback(data));
                 },
-
-                // --- INTERACTION LOGIC ---
-
-                // 1. Clicking an EXISTING Event (Green/Red Block) -> Show Details
-                eventClick: function(info) {
-                    // Highlight the selected day visually (optional style)
-                    document.querySelectorAll('.fc-daygrid-day').forEach(el => el.style.backgroundColor = '');
-                    info.el.closest('.fc-daygrid-day').style.backgroundColor = '#f8f9fc';
-
-                    var dateStr = info.event.startStr; 
-                    fetchDayDetails(dateStr);
-                },
-
-                // 2. Clicking an EMPTY Day -> Create Schedule
+                // CLICK LOGIC: Update Side Panel instead of Redirecting
                 dateClick: function(info) {
-                    // Redirect to create page with date pre-filled
-                    var url = "{{ route('admin.schedules.create') }}?date=" + info.dateStr;
-                    window.location.href = url;
+                    // Visually select the day
+                    document.querySelectorAll('.fc-daygrid-day').forEach(el => el.style.backgroundColor = '');
+                    info.dayEl.style.backgroundColor = '#f0f4ff'; // Light blue highlight
+                    
+                    fetchDayDetails(info.dateStr);
+                },
+                eventClick: function(info) {
+                    // Also fetch details if they click the colored bar
+                    fetchDayDetails(info.event.startStr);
                 }
             });
 
             calendar.render();
 
-            // Refresh when doctor filter changes
             doctorSelect.addEventListener('change', function() {
                 calendar.refetchEvents();
+                document.getElementById('day-details-container').innerHTML = '<div class="text-center mt-5 text-muted">Select a date to view details</div>';
             });
         });
 
-        // Fetch Sidebar Details
+        // FETCH SIDE PANEL
         function fetchDayDetails(date) {
             const container = document.getElementById('day-details-container');
             const doctorId = document.getElementById('doctorFilter').value;
             
-            container.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary"></div><p class="mt-2">Checking slots...</p></div>';
+            if(!doctorId) {
+                container.innerHTML = '<div class="alert alert-warning m-3">Please select a Doctor from the filter above first.</div>';
+                return;
+            }
+
+            container.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary"></div></div>';
 
             fetch(`{{ route('admin.api.day_details') }}?date=${date}&doctor_id=${doctorId}`)
                 .then(response => response.json())
                 .then(data => {
-                    // If no schedule exists (Redundant check, but good for safety)
+                    let header = `<h5 class="font-weight-bold text-center mb-3 border-bottom pb-2 text-dark">${date}</h5>`;
+                    
+                    // SCENARIO 1: DOCTOR NOT WORKING (No Schedule)
                     if (data.status === 'closed') {
                         container.innerHTML = `
-                            <div class="text-center py-5 text-muted">
-                                <i class="fas fa-door-closed fa-3x mb-3"></i>
-                                <h5>Doctor Not Available</h5>
-                                <p>No schedule set for this date.</p>
-                                <a href="{{ route('admin.schedules.create') }}?date=${date}" class="btn btn-sm btn-primary mt-2">Set Availability</a>
+                            ${header}
+                            <div class="text-center py-4 text-muted">
+                                <i class="fas fa-calendar-times fa-3x mb-3 text-gray-300"></i>
+                                <h5>No Schedule Set</h5>
+                                <p class="small">The doctor is not scheduled to work on this day.</p>
+                                <a href="{{ route('admin.schedules.create') }}?date=${date}" class="btn btn-primary btn-sm px-4">
+                                    <i class="fas fa-plus"></i> Set Availability
+                                </a>
                             </div>
                         `;
                         return;
                     }
 
-                    // Build the Slots List
-                    let html = `<h5 class="font-weight-bold text-center mb-3 border-bottom pb-2 text-dark">${date}</h5>
-                                <div class="list-group list-group-flush" style="max-height: 400px; overflow-y: auto;">`;
+                    // SCENARIO 2: SHOW HOURLY SLOTS
+                    let html = `${header}<div class="list-group list-group-flush" style="max-height: 500px; overflow-y: auto;">`;
 
                     data.slots.forEach(slot => {
                         if (slot.status === 'booked') {
-                            // RED SLOT (Booked) - Admin can view details/cancel
+                            // LIGHT RED (Reserved)
                             html += `
-                                <div class="list-group-item d-flex justify-content-between align-items-center bg-light text-muted p-2">
-                                    <div>
-                                        <span class="font-weight-bold">${slot.time}</span>
-                                        <br><small class="text-primary"><i class="fas fa-user"></i> ${slot.info.patient.name}</small>
-                                        <br><small class="text-xs">${slot.info.service.name}</small>
+                                <div class="list-group-item mb-2 rounded border-left-danger shadow-sm" style="background-color: #ffeef0;">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <span class="font-weight-bold text-danger">${slot.time}</span>
+                                            <div class="small text-dark mt-1"><i class="fas fa-user"></i> ${slot.info.patient.name}</div>
+                                            <div class="small text-muted">${slot.info.service.name}</div>
+                                        </div>
+                                        <span class="badge badge-danger">Reserved</span>
                                     </div>
-                                    <span class="badge badge-danger">Booked</span>
                                 </div>
                             `;
                         } else {
-                            // GREEN SLOT (Available) - Admin can book walk-in
+                            // LIGHT GREEN (Available)
                             html += `
                                 <button onclick="openBookingModal('${date}', '${slot.raw_time}', '${slot.time}', '${slot.doctor_id}')" 
-                                    class="list-group-item list-group-item-action d-flex justify-content-between align-items-center p-2">
-                                    <span class="font-weight-bold text-success">${slot.time}</span>
-                                    <span class="badge badge-success px-2 py-1">Available</span>
+                                    class="list-group-item list-group-item-action mb-2 rounded border-left-success shadow-sm" style="background-color: #f0fff4;">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span class="font-weight-bold text-success">${slot.time}</span>
+                                        <span class="badge badge-success px-3">Open</span>
+                                    </div>
                                 </button>
                             `;
                         }
@@ -202,23 +246,23 @@
                 });
         }
 
-        function openBookingModal(date, rawTime, displayTime, doctorId) {
-            if(!doctorId) {
-                alert("Please select a specific Doctor from the dropdown filter first.");
-                return;
+        // --- MODAL LOGIC ---
+        function togglePatientType(type) {
+            if(type === 'new') {
+                document.getElementById('existingPatientGroup').style.display = 'none';
+                document.getElementById('newPatientGroup').style.display = 'block';
+            } else {
+                document.getElementById('existingPatientGroup').style.display = 'block';
+                document.getElementById('newPatientGroup').style.display = 'none';
             }
+        }
+
+        function openBookingModal(date, rawTime, displayTime, doctorId) {
             document.getElementById('modalDate').value = date;
             document.getElementById('modalTime').value = rawTime;
             document.getElementById('modalDoctor').value = doctorId;
-            document.getElementById('displayDateSlot').innerText = date + ' at ' + displayTime;
-            
+            document.getElementById('displayDateSlot').innerText = date + ' @ ' + displayTime;
             $('#quickBookModal').modal('show');
         }
     </script>
-
-    <style>
-        .fc-daygrid-day { cursor: pointer; transition: background 0.2s; }
-        .fc-daygrid-day:hover { background-color: #f8f9fc; }
-        .fc-event { cursor: pointer; }
-    </style>
 @endpush
