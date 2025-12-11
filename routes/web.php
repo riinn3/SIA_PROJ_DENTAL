@@ -2,24 +2,46 @@
 
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\AdminController;
-use App\Http\Controllers\ServiceController; 
+use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\ScheduleController;
 use App\Http\Controllers\Auth\LoginRedirectController;
+use App\Http\Controllers\AppointmentController;
+use App\Http\Controllers\PatientController;
+use App\Http\Controllers\StaffController;
+use App\Http\Controllers\PatientHomeController;
+use App\Http\Controllers\PatientBookingController;
+use App\Http\Controllers\ReportController;
+use App\Http\Controllers\Api\CalendarController;
 use Illuminate\Support\Facades\Route;
 
+// --- PUBLIC ROUTES ---
 Route::get('/', function () {
     return redirect()->route('login');
 });
 
-// --- Smart Redirect ---
+// --- SMART REDIRECT (Post-Login) ---
 Route::get('/home', LoginRedirectController::class)->middleware(['auth'])->name('home');
 
+// --- SHARED ROUTES (Admins, Doctors, Patients) ---
+Route::middleware(['auth'])->group(function () {
+    // Profile Management
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    // SHARED API: Calendar Data (Used by Admin Calendar & Patient Booking Wizard)
+    Route::get('/api/calendar/events', [CalendarController::class, 'getEvents'])->name('api.calendar');
+    Route::get('/api/calendar/details', [CalendarController::class, 'getDayDetails'])->name('api.day_details');
+});
+
 // --- PATIENT ROUTES (Role: patient) ---
-// Using 'role:patient' middleware we created earlier
 Route::middleware(['auth', 'role:patient'])->group(function () {
-    Route::get('/dashboard', function () {
-        return view('dashboard'); 
-    })->name('dashboard');
+    // 1. Dashboard (The Home Screen)
+    Route::get('/dashboard', [PatientHomeController::class, 'index'])->name('dashboard');
+
+    // 2. Single Page Booking Wizard
+    Route::get('/book-appointment', [PatientBookingController::class, 'create'])->name('patient.booking.step1');
+    Route::post('/book-appointment', [PatientBookingController::class, 'store'])->name('patient.booking.store');
 });
 
 // --- DOCTOR ROUTES (Role: doctor) ---
@@ -31,56 +53,57 @@ Route::middleware(['auth', 'role:doctor'])->prefix('doctor')->name('doctor.')->g
 
 // --- ADMIN ROUTES (Role: admin) ---
 Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
+    
     // Dashboard
     Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
     
-    // Services Management (Inventory)
-    Route::get('/services', [ServiceController::class, 'index'])->name('services.index');
+    // --- 1. SERVICES (Inventory) ---
+    Route::get('/services', [ServiceController::class, 'index'])->name('services.index'); 
     Route::get('/services/create', [ServiceController::class, 'create'])->name('services.create');
     Route::post('/services', [ServiceController::class, 'store'])->name('services.store');
-    
-    // Edit & Update
     Route::get('/services/{id}/edit', [ServiceController::class, 'edit'])->name('services.edit');
     Route::put('/services/{id}', [ServiceController::class, 'update'])->name('services.update');
-    
-    // Archives & Soft Delete
-    Route::get('/services/archives', [ServiceController::class, 'archives'])->name('services.archives');
-    Route::post('/services/{id}/restore', [ServiceController::class, 'restore'])->name('services.restore');
+    Route::delete('/services/{id}', [ServiceController::class, 'destroy'])->name('services.destroy'); 
+    Route::post('/services/{id}/restore', [ServiceController::class, 'restore'])->name('services.restore'); 
     Route::delete('/services/{id}/force', [ServiceController::class, 'forceDelete'])->name('services.forceDelete');
-    Route::delete('/services/{id}', [ServiceController::class, 'destroy'])->name('services.destroy');
 
-    // --- Schedule Management ---
-    Route::get('/schedules', [App\Http\Controllers\ScheduleController::class, 'index'])->name('schedules.index');
-    Route::get('/schedules/create', [App\Http\Controllers\ScheduleController::class, 'create'])->name('schedules.create');
-    Route::post('/schedules', [App\Http\Controllers\ScheduleController::class, 'store'])->name('schedules.store');
-    Route::delete('/schedules/{id}', [App\Http\Controllers\ScheduleController::class, 'destroy'])->name('schedules.destroy');
-
-    // --- Internal API for Calendar ---
-    Route::get('/api/calendar/events', [App\Http\Controllers\Api\CalendarController::class, 'getEvents'])->name('api.calendar');
-    Route::get('/api/calendar/details', [App\Http\Controllers\Api\CalendarController::class, 'getDayDetails'])->name('api.day_details');
-
-    // --- Appointment Management ---
-    Route::get('/appointments', [App\Http\Controllers\AppointmentController::class, 'index'])->name('appointments.index');
-    Route::get('/appointments/create', [App\Http\Controllers\AppointmentController::class, 'create'])->name('appointments.create');
-    Route::post('/appointments', [App\Http\Controllers\AppointmentController::class, 'store'])->name('appointments.store');
-    Route::post('/appointments/walkin', [App\Http\Controllers\AppointmentController::class, 'storeWalkIn'])->name('appointments.store_walkin');
+    // --- 2. SCHEDULES ---
+    Route::get('/schedules', [ScheduleController::class, 'index'])->name('schedules.index');
+    Route::get('/schedules/create', [ScheduleController::class, 'create'])->name('schedules.create');
+    Route::post('/schedules', [ScheduleController::class, 'store'])->name('schedules.store');
+    Route::delete('/schedules/{id}', [ScheduleController::class, 'destroy'])->name('schedules.destroy');
+    
+    // --- 3. APPOINTMENTS ---
+    Route::get('/appointments', [AppointmentController::class, 'index'])->name('appointments.index');
+    Route::get('/appointments/create', [AppointmentController::class, 'create'])->name('appointments.create');
+    Route::post('/appointments', [AppointmentController::class, 'store'])->name('appointments.store');
+    Route::get('/appointments/{id}', [AppointmentController::class, 'show'])->name('appointments.show');
     
     // Actions
-    Route::post('/appointments/{id}/confirm', [App\Http\Controllers\AppointmentController::class, 'confirm'])->name('appointments.confirm');
-    Route::post('/appointments/{id}/cancel', [App\Http\Controllers\AppointmentController::class, 'cancel'])->name('appointments.cancel');
-    Route::post('/appointments/{id}/complete', [App\Http\Controllers\AppointmentController::class, 'complete'])->name('appointments.complete');
+    Route::post('/appointments/{id}/confirm', [AppointmentController::class, 'confirm'])->name('appointments.confirm');
+    Route::post('/appointments/{id}/cancel', [AppointmentController::class, 'cancel'])->name('appointments.cancel');
+    Route::post('/appointments/{id}/complete', [AppointmentController::class, 'complete'])->name('appointments.complete');
+    
+    // Manual Blocking (Admin Only)
+    Route::post('/appointments/block-slot', [AppointmentController::class, 'blockSlot'])->name('appointments.block');
 
-    // --- Appointment Details & Blocking ---
-Route::get('/appointments/{id}', [App\Http\Controllers\AppointmentController::class, 'show'])->name('appointments.show');
-Route::post('/appointments/block-slot', [App\Http\Controllers\AppointmentController::class, 'blockSlot'])->name('appointments.block');
+    // --- 4. PATIENTS ---
+    Route::get('/patients', [PatientController::class, 'index'])->name('patients.index');
+    Route::get('/patients/{id}', [PatientController::class, 'show'])->name('patients.show');
+    Route::get('/patients/{id}/edit', [PatientController::class, 'edit'])->name('patients.edit');
+    Route::put('/patients/{id}', [PatientController::class, 'update'])->name('patients.update');
+    Route::delete('/patients/{id}', [PatientController::class, 'destroy'])->name('patients.destroy');
+    Route::post('/patients/{id}/restore', [PatientController::class, 'restore'])->name('patients.restore');
 
-});
+    // --- 5. STAFF ---
+    Route::get('/staff', [StaffController::class, 'index'])->name('staff.index');
+    Route::get('/staff/create', [StaffController::class, 'create'])->name('staff.create');
+    Route::post('/staff', [StaffController::class, 'store'])->name('staff.store');
+    Route::delete('/staff/{id}', [StaffController::class, 'destroy'])->name('staff.destroy');
+    Route::post('/staff/{id}/restore', [StaffController::class, 'restore'])->name('staff.restore');
 
-// --- SHARED PROFILE ROUTES ---
-Route::middleware('auth')->group(function () {
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    // --- 6. REPORTS ---
+    Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
 });
 
 require __DIR__.'/auth.php';

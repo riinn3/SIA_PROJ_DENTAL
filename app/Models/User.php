@@ -18,7 +18,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'password',
         'phone',
         'address',
-        'role', // <--- Changed from is_admin to role
+        'role',
     ];
 
     protected $hidden = [
@@ -31,15 +31,28 @@ class User extends Authenticatable implements MustVerifyEmail
         'password' => 'hashed',
     ];
 
-    // --- Helper to check roles easily ---
-    // Usage: if ($user->hasRole('admin')) { ... }
+    // Helper to check roles easily
     public function hasRole($role)
     {
         return $this->role === $role;
     }
 
+    // Relation for Doctors
     public function schedules()
     {
         return $this->hasMany(Schedule::class, 'doctor_id');
+    }
+
+    // --- ADD THIS MISSING RELATIONSHIP ---
+    // Relation for Patients (and Doctors) to find their bookings
+    public function appointments()
+    {
+        // If the user is a patient, look for 'user_id'
+        // If the user is a doctor, look for 'doctor_id'
+        if ($this->role === 'doctor') {
+            return $this->hasMany(Appointment::class, 'doctor_id');
+        }
+        
+        return $this->hasMany(Appointment::class, 'user_id');
     }
 }
