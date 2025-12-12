@@ -14,6 +14,8 @@
         <input type="hidden" name="doctor_id" id="input_doctor_id" required>
         <input type="hidden" name="appointment_date" id="input_date" required>
         <input type="hidden" name="appointment_time" id="input_time" required>
+        {{-- IMPORTANT: We pass the calculated minutes to the backend --}}
+        <input type="hidden" name="duration_minutes" id="input_duration" required>
 
         <div class="row">
             <div class="col-lg-8">
@@ -145,38 +147,45 @@
 <style>
     .cursor-pointer { cursor: pointer; }
     .selected-card { border: 2px solid #4e73df !important; background-color: #f8f9fc; transform: scale(1.02); }
-    /* Disable past dates visual */
     .fc-day-past { background-color: #f8f9fc; pointer-events: none; opacity: 0.6; }
+    
+    /* Bigger, clearer slot buttons */
+    .slot-btn { 
+        font-weight: bold; 
+        border-left: 6px solid transparent; 
+        transition: all 0.2s; 
+        text-align: left;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .slot-btn:hover { border-left: 6px solid #1cc88a; background-color: #f0fff4; }
+    .slot-btn.active { border-left: 6px solid #1cc88a; background-color: #1cc88a !important; color: white !important; }
 </style>
 
 <script>
     var calendar;
     var selectedServiceId = null;
     var selectedDoctorId = null;
+    var selectedDuration = 30; // Default
 
     document.addEventListener('DOMContentLoaded', function() {
         var calendarEl = document.getElementById('calendar');
-        var today = new Date().toISOString().split('T')[0]; // Get YYYY-MM-DD
+        var today = new Date().toISOString().split('T')[0]; 
 
         calendar = new FullCalendar.Calendar(calendarEl, {
             initialView: 'dayGridMonth',
             height: 400,
             headerToolbar: { left: 'prev,next', center: 'title', right: '' },
             selectable: true,
-            // BLOCK PAST DATES
-            validRange: {
-                start: today
-            },
+            validRange: { start: today },
             events: function(info, successCallback, failureCallback) {
-                // Now points to the SHARED public API route
                 if (!selectedDoctorId) { successCallback([]); return; }
                 fetch(`{{ route('api.calendar') }}?doctor_id=${selectedDoctorId}&start=${info.startStr}&end=${info.endStr}`)
                     .then(r => r.json()).then(data => successCallback(data));
             },
             dateClick: function(info) {
                 if (!selectedDoctorId) return;
-                
-                // Extra check for past dates
                 if (info.dateStr < today) return; 
 
                 document.querySelectorAll('.fc-daygrid-day').forEach(el => el.style.backgroundColor = '');
@@ -188,22 +197,17 @@
         calendar.render();
     });
 
-    // STEP 1: CARD SELECT
+    // --- STEP 1 LOGIC ---
     function selectService(el, id, name, price, duration) {
-        // Reset Dropdown
         document.getElementById('otherServiceSelect').selectedIndex = 0;
         applyServiceSelection(id, name, price, duration);
         
-        // Highlight Card
         document.querySelectorAll('.service-card').forEach(c => c.classList.remove('selected-card'));
         el.classList.add('selected-card');
     }
 
-    // STEP 1: DROPDOWN SELECT
     function selectFromDropdown(select) {
         if(select.value == "") return;
-
-        // Reset Cards
         document.querySelectorAll('.service-card').forEach(c => c.classList.remove('selected-card'));
 
         let opt = select.options[select.selectedIndex];
@@ -215,10 +219,13 @@
         );
     }
 
-    // COMMON LOGIC
     function applyServiceSelection(id, name, price, duration) {
         selectedServiceId = id;
+        selectedDuration = parseInt(duration); // Store duration globally
+
         document.getElementById('input_service_id').value = id;
+        document.getElementById('input_duration').value = selectedDuration;
+        
         document.getElementById('sum_service').innerText = name;
         document.getElementById('sum_price').innerText = '₱' + price.toLocaleString();
         document.getElementById('sum_duration').innerText = duration + ' mins';
@@ -227,7 +234,7 @@
         document.getElementById('step2').scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 
-    // STEP 2: DOCTOR
+    // --- STEP 2 LOGIC ---
     function selectDoctor(el, id, name) {
         document.querySelectorAll('.doctor-card').forEach(c => c.classList.remove('selected-card'));
         el.classList.add('selected-card');
@@ -241,7 +248,7 @@
         document.getElementById('step3').scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 
-    // STEP 3: API CALL
+    // --- STEP 3 LOGIC (THE SMART MERGING) ---
     function fetchSlots(date) {
         const container = document.getElementById('slotsContainer');
         const dateLabel = document.getElementById('selectedDateLabel');
@@ -249,7 +256,6 @@
         dateLabel.innerText = new Date(date).toDateString();
         container.innerHTML = '<div class="text-center py-3"><div class="spinner-border text-primary spinner-border-sm"></div></div>';
 
-        // Updated Route to Shared API
         fetch(`{{ route('api.day_details') }}?date=${date}&doctor_id=${selectedDoctorId}`)
             .then(r => r.json())
             .then(data => {
@@ -260,28 +266,62 @@
                     return;
                 }
 
+                // 1. Determine how many 30-min blocks we need
+                // e.g., 120 mins = 4 slots
+                let slotsNeeded = Math.ceil(selectedDuration / 30);
                 let hasSlots = false;
-                data.slots.forEach(slot => {
-                    if (slot.type === 'available') {
+
+                // 2. Loop through the raw slots
+                for (let i = 0; i <= data.slots.length - slotsNeeded; i++) {
+                    let isSequenceOpen = true;
+
+                    // 3. Check if the next N slots are ALL "available"
+                    for (let j = 0; j < slotsNeeded; j++) {
+                        if (data.slots[i + j].type !== 'available') {
+                            isSequenceOpen = false;
+                            break;
+                        }
+                    }
+
+                    // 4. If valid, merge them into ONE button
+                    if (isSequenceOpen) {
                         hasSlots = true;
+                        let startSlot = data.slots[i];
+                        let endSlot = data.slots[i + slotsNeeded - 1]; // The last slot in the sequence
+
+                        // Clean labels (remove " - ...")
+                        let startLabel = startSlot.time_label.split(' - ')[0]; // "1:30 PM"
+                        let endLabel = endSlot.time_label.split(' - ')[1];     // "3:30 PM"
+                        
+                        let displayLabel = `${startLabel} - ${endLabel}`;
+
                         let btn = document.createElement('button');
-                        btn.className = 'list-group-item list-group-item-action text-center text-success font-weight-bold py-2 slot-btn';
-                        btn.innerHTML = `${slot.time_label}`;
-                        btn.type = 'button'; // Prevent form submit
-                        btn.onclick = function() { selectTime(this, date, slot.raw_time, slot.time_label); };
+                        btn.className = 'list-group-item list-group-item-action py-3 mb-2 shadow-sm rounded slot-btn';
+                        btn.innerHTML = `
+                            <div>
+                                <div class="h6 mb-0 text-dark">${displayLabel}</div>
+                                <small class="text-muted">Duration: ${selectedDuration} mins</small>
+                            </div>
+                            <i class="fas fa-chevron-right text-gray-400"></i>
+                        `;
+                        btn.type = 'button';
+                        btn.onclick = function() { selectTime(this, date, startSlot.raw_time, displayLabel); };
                         container.appendChild(btn);
                     }
-                });
+                }
 
-                if (!hasSlots) container.innerHTML = '<div class="alert alert-secondary small m-2">Fully booked.</div>';
+                if (!hasSlots) {
+                    container.innerHTML = `<div class="alert alert-secondary small m-2 text-center">
+                        No continuous ${selectedDuration}-minute slot available.<br>Please try another date.
+                    </div>`;
+                }
             })
             .catch(err => {
                 console.error(err);
-                container.innerHTML = '<div class="text-danger small text-center">Error loading slots. Please Login again.</div>';
+                container.innerHTML = '<div class="text-danger small text-center">Error loading slots.</div>';
             });
     }
 
-    // STEP 4
     function selectTime(el, date, rawTime, label) {
         document.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('active', 'bg-success', 'text-white'));
         el.classList.add('active', 'bg-success', 'text-white');

@@ -4,8 +4,11 @@
     <div class="row justify-content-center">
         <div class="col-md-8">
             <div class="card shadow mb-4">
-                <div class="card-header py-3 bg-primary text-white">
-                    <h6 class="m-0 font-weight-bold"><i class="fas fa-calendar-plus mr-2"></i>Book Appointment</h6>
+                <div class="card-header py-3 bg-gradient-primary text-white d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold"><i class="fas fa-user-plus mr-2"></i>Book Walk-In Appointment</h6>
+                    <a href="{{ route('admin.schedules.index') }}" class="btn btn-sm btn-light text-primary font-weight-bold">
+                        <i class="fas fa-arrow-left"></i> Back
+                    </a>
                 </div>
                 <div class="card-body">
                     @if($errors->any())
@@ -18,90 +21,118 @@
 
                     <form action="{{ route('admin.appointments.store') }}" method="POST">
                         @csrf
-                        {{-- Hidden Fields passed from Calendar --}}
+                        {{-- Hidden Fields from Calendar Link --}}
                         <input type="hidden" name="doctor_id" value="{{ request('doctor_id') }}">
                         <input type="hidden" name="appointment_date" value="{{ request('date') }}">
                         <input type="hidden" name="appointment_time" value="{{ request('time') }}">
 
-                        <div class="alert alert-light border-left-primary mb-4">
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <small class="text-muted text-uppercase font-weight-bold">Doctor</small><br>
-                                    <span class="h5 text-dark font-weight-bold">Dr. {{ $doctors->find(request('doctor_id'))->name ?? 'Unknown' }}</span>
-                                </div>
-                                <div class="col-md-6 text-md-right">
-                                    <small class="text-muted text-uppercase font-weight-bold">Date</small><br>
-                                    <span class="h5 text-primary font-weight-bold">
-                                        {{ \Carbon\Carbon::parse(request('date'))->format('M d, Y') }}
-                                    </span>
-                                </div>
+                        <div class="alert alert-primary border-0 d-flex justify-content-between align-items-center mb-4">
+                            <div>
+                                <small class="text-uppercase font-weight-bold opacity-70">Doctor</small><br>
+                                <span class="h5 font-weight-bold">Dr. {{ $doctors->find(request('doctor_id'))->name ?? 'Unknown' }}</span>
+                            </div>
+                            <div class="text-right">
+                                <small class="text-uppercase font-weight-bold opacity-70">Appointment Time</small><br>
+                                <span class="h5 font-weight-bold">
+                                    {{ \Carbon\Carbon::parse(request('date'))->format('M d') }} @ {{ \Carbon\Carbon::parse(request('time'))->format('h:i A') }}
+                                </span>
                             </div>
                         </div>
 
                         <div class="form-group mb-4">
-                            <label class="font-weight-bold">Select Patient</label>
-                            <select name="user_id" class="form-control form-control-lg">
+                            <label class="font-weight-bold text-gray-700">Select Patient</label>
+                            <select name="user_id" class="form-control form-control-lg border-left-primary">
+                                <option value="">-- Choose Patient --</option>
                                 @foreach($patients as $p)
-                                    <option value="{{ $p->id }}">{{ $p->name }} ({{ $p->phone ?? 'No Phone' }})</option>
+                                    <option value="{{ $p->id }}">{{ $p->name }} ({{ $p->phone ?? 'No # ' }})</option>
                                 @endforeach
                             </select>
-                            <small class="form-text text-muted"><a href="#">+ Register new patient</a></small>
+                            <small class="form-text text-muted mt-2">
+                                <a href="{{ route('admin.patients.index') }}" target="_blank"><i class="fas fa-plus"></i> Register new patient</a> (Opens in new tab)
+                            </small>
                         </div>
+
+                        <hr class="my-4">
 
                         <div class="form-group mb-4">
-                            <label class="font-weight-bold">Service</label>
-                            <select name="service_id" class="form-control">
+                            <label class="font-weight-bold text-gray-700">Service / Treatment</label>
+                            <select name="service_id" id="serviceSelect" class="form-control form-control-lg" onchange="updateDuration()">
+                                <option value="" data-duration="30">-- Select Service --</option>
                                 @foreach($services as $s)
-                                    <option value="{{ $s->id }}">{{ $s->name }} - ₱{{ number_format($s->price) }}</option>
+                                    <option value="{{ $s->id }}" data-duration="{{ $s->duration_minutes }}">
+                                        {{ $s->name }} ({{ $s->duration_minutes }} mins) - ₱{{ number_format($s->price) }}
+                                    </option>
                                 @endforeach
                             </select>
                         </div>
-
-                        <hr>
 
                         <div class="row align-items-end mb-4">
-                            <div class="col-md-5">
-                                <label class="font-weight-bold">From (Start)</label>
-                                <input type="text" class="form-control bg-light" 
-                                       value="{{ \Carbon\Carbon::parse(request('time'))->format('h:i A') }}" readonly>
-                            </div>
-                            
-                            <div class="col-md-2 text-center py-2">
-                                <i class="fas fa-arrow-right text-muted"></i>
-                            </div>
-
-                            <div class="col-md-5">
-                                <label class="font-weight-bold text-success">To (End Time)</label>
-                                <select name="duration_minutes" class="form-control font-weight-bold text-success">
-                                    @php
-                                        // Calculate 30 min increments
-                                        $start = \Carbon\Carbon::parse(request('time'));
-                                    @endphp
-                                    
-                                    {{-- Loop to generate options: 30m, 1h, 1h30m, 2h --}}
+                            <div class="col-md-6">
+                                <label class="font-weight-bold text-gray-700">Duration</label>
+                                <select name="duration_minutes" id="durationSelect" class="form-control font-weight-bold text-success">
+                                    {{-- Options generated by JS or static fallback --}}
                                     @for($i = 30; $i <= 240; $i += 30) 
-                                        @php 
-                                            $end = $start->copy()->addMinutes($i);
-                                            $label = $end->format('h:i A');
-                                            
-                                            // Optional: You could hide options here if they overlap lunch/closing
-                                            // For now, validation handles conflicts.
-                                        @endphp
                                         <option value="{{ $i }}" {{ $i == 60 ? 'selected' : '' }}>
-                                            {{ $label }} ({{ $i / 60 }} hrs)
+                                            {{ $i }} Minutes ({{ $i/60 }} hr)
                                         </option>
                                     @endfor
                                 </select>
+                                <small class="text-muted">Auto-selected based on service.</small>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label class="font-weight-bold text-gray-700">Calculated End Time</label>
+                                <input type="text" id="endTimeDisplay" class="form-control bg-light" readonly>
                             </div>
                         </div>
 
                         <button type="submit" class="btn btn-success btn-lg btn-block shadow-sm">
-                            <i class="fas fa-check-circle mr-2"></i> Confirm Appointment
+                            <i class="fas fa-check-circle mr-2"></i> Confirm Walk-In
                         </button>
-                        <a href="{{ route('admin.schedules.index') }}" class="btn btn-link btn-block text-muted">Cancel</a>
                     </form>
                 </div>
             </div>
         </div>
     </div>
+
+    <script>
+        const startTimeStr = "{{ request('time') }}"; // e.g. "09:00:00"
+        
+        function updateDuration() {
+            const serviceSelect = document.getElementById('serviceSelect');
+            const durationSelect = document.getElementById('durationSelect');
+            
+            // 1. Get duration from selected service data attribute
+            const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
+            const recommendedDuration = selectedOption.getAttribute('data-duration');
+
+            if (recommendedDuration) {
+                durationSelect.value = recommendedDuration;
+            }
+            
+            updateEndTime();
+        }
+
+        function updateEndTime() {
+            const duration = parseInt(document.getElementById('durationSelect').value);
+            
+            // Create Date object for today + start time
+            let date = new Date("2000-01-01 " + startTimeStr); 
+            date.setMinutes(date.getMinutes() + duration);
+            
+            // Format HH:MM AM/PM
+            let hours = date.getHours();
+            let minutes = date.getMinutes();
+            let ampm = hours >= 12 ? 'PM' : 'AM';
+            hours = hours % 12;
+            hours = hours ? hours : 12; // the hour '0' should be '12'
+            minutes = minutes < 10 ? '0'+minutes : minutes;
+            
+            document.getElementById('endTimeDisplay').value = hours + ':' + minutes + ' ' + ampm;
+        }
+
+        // Run on load to set initial state
+        document.getElementById('durationSelect').addEventListener('change', updateEndTime);
+        document.addEventListener('DOMContentLoaded', updateEndTime);
+    </script>
 @endsection

@@ -10,6 +10,7 @@ use App\Http\Controllers\PatientController;
 use App\Http\Controllers\StaffController;
 use App\Http\Controllers\PatientHomeController;
 use App\Http\Controllers\PatientBookingController;
+use App\Http\Controllers\PatientHistoryController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\Api\CalendarController;
 use Illuminate\Support\Facades\Route;
@@ -42,13 +43,15 @@ Route::middleware(['auth', 'role:patient'])->group(function () {
     // 2. Single Page Booking Wizard
     Route::get('/book-appointment', [PatientBookingController::class, 'create'])->name('patient.booking.step1');
     Route::post('/book-appointment', [PatientBookingController::class, 'store'])->name('patient.booking.store');
+
+    // 3. Full History
+    Route::get('/my-history', [App\Http\Controllers\PatientHistoryController::class, 'index'])->name('patient.history');
 });
 
 // --- DOCTOR ROUTES (Role: doctor) ---
 Route::middleware(['auth', 'role:doctor'])->prefix('doctor')->name('doctor.')->group(function () {
-    Route::get('/dashboard', function () {
-        return view('doctor.dashboard'); 
-    })->name('dashboard');
+    Route::get('/dashboard', [App\Http\Controllers\DoctorController::class, 'dashboard'])->name('dashboard');
+    Route::get('/schedule', [App\Http\Controllers\DoctorController::class, 'mySchedule'])->name('schedule.index');
 });
 
 // --- ADMIN ROUTES (Role: admin) ---

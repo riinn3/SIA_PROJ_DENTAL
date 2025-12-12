@@ -112,15 +112,25 @@
 <style>
     .cursor-pointer { cursor: pointer; }
     .selected-card { border: 2px solid #4e73df !important; background-color: #f8f9fc; transform: scale(1.02); }
-    .slot-btn { font-weight: bold; border-left: 4px solid transparent; transition: all 0.2s; }
-    .slot-btn:hover { border-left: 4px solid #1cc88a; background-color: #f0fff4; }
-    .slot-btn.active { border-left: 4px solid #1cc88a; background-color: #1cc88a !important; color: white !important; }
+    /* Bigger, clearer slot buttons */
+    .slot-btn { 
+        font-weight: bold; 
+        border-left: 6px solid transparent; 
+        transition: all 0.2s; 
+        text-align: left;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .slot-btn:hover { border-left: 6px solid #1cc88a; background-color: #f0fff4; }
+    .slot-btn.active { border-left: 6px solid #1cc88a; background-color: #1cc88a !important; color: white !important; }
+    .slot-btn.active small { color: #e9f7ef !important; }
 </style>
 
 <script>
     var calendar;
     var selectedDoctorId = null;
-    var globalDuration = 30; // Default
+    var globalDuration = 30; // Default to 30 mins
 
     document.addEventListener('DOMContentLoaded', function() {
         var calendarEl = document.getElementById('calendar');
@@ -139,7 +149,7 @@
             },
             dateClick: function(info) {
                 if (!selectedDoctorId) return;
-                if (info.dateStr < today) return; // Prevent past dates
+                if (info.dateStr < today) return;
                 document.querySelectorAll('.fc-daygrid-day').forEach(el => el.style.backgroundColor = '');
                 info.dayEl.style.backgroundColor = '#eaecf4';
                 fetchSlots(info.dateStr);
@@ -148,15 +158,14 @@
         calendar.render();
     });
 
-    // STEP 1
+    // STEP 1: Select Service
     function selectService(el, id, name, price, duration) {
         document.querySelectorAll('.service-card').forEach(c => c.classList.remove('selected-card'));
         el.classList.add('selected-card');
         
         // UPDATE GLOBAL DURATION
         globalDuration = parseInt(duration);
-        console.log("Service Selected. Duration set to:", globalDuration); // DEBUG
-
+        
         document.getElementById('input_service_id').value = id;
         document.getElementById('sum_service').innerText = name;
         document.getElementById('sum_price').innerText = '₱' + price.toLocaleString();
@@ -165,7 +174,7 @@
         unlockStep('step2');
     }
 
-    // STEP 2
+    // STEP 2: Select Doctor
     function selectDoctor(el, id, name) {
         document.querySelectorAll('.doctor-card').forEach(c => c.classList.remove('selected-card'));
         el.classList.add('selected-card');
@@ -178,7 +187,7 @@
         calendar.refetchEvents();
     }
 
-    // STEP 3: THE SMART LOGIC
+    // STEP 3: Fetch & Merge Slots (THE FIX)
     function fetchSlots(date) {
         const container = document.getElementById('slotsContainer');
         document.getElementById('dateLabel').innerText = new Date(date).toDateString();
@@ -194,54 +203,62 @@
                     return;
                 }
 
-                // CALCULATE CHUNKS
-                let chunks = Math.ceil(globalDuration / 30);
-                console.log(`Need ${chunks} slots for ${globalDuration} mins`);
+                // --- SMART MERGING LOGIC ---
+                // 1. Calculate how many 30-min slots we need
+                let requiredSlots = Math.ceil(globalDuration / 30);
+                let validOptionsFound = false;
 
-                let validFound = false;
-
-                // Loop through slots
-                for (let i = 0; i <= data.slots.length - chunks; i++) {
-                    let isSequenceOpen = true;
-                    let endLabel = "";
-
-                    // Look ahead
-                    for (let j = 0; j < chunks; j++) {
-                        let slot = data.slots[i + j];
-                        
-                        // IF SLOT IS NOT 'available' (It is 'booked' or 'lunch'), FAIL.
-                        if (slot.type !== 'available') {
-                            isSequenceOpen = false;
+                // 2. Loop through available slots
+                // We stop loop early if there aren't enough slots left in the day
+                for (let i = 0; i <= data.slots.length - requiredSlots; i++) {
+                    
+                    let isSequenceAvailable = true;
+                    
+                    // 3. Look ahead to check if the NEXT (requiredSlots - 1) slots are also free
+                    for (let j = 0; j < requiredSlots; j++) {
+                        if (data.slots[i + j].type !== 'available') {
+                            isSequenceAvailable = false;
                             break; 
                         }
-                        if (j === chunks - 1) endLabel = slot.time_label.split(' - ')[1];
                     }
 
-                    if (isSequenceOpen) {
-                        validFound = true;
-                        let startLabel = data.slots[i].time_label.split(' - ')[0];
-                        let fullLabel = `${startLabel} - ${endLabel}`;
-                        let rawStartTime = data.slots[i].raw_time;
-
+                    // 4. If sequence is valid, render ONE button for the whole block
+                    if (isSequenceAvailable) {
+                        validOptionsFound = true;
+                        
+                        let startSlot = data.slots[i];
+                        let endSlot = data.slots[i + requiredSlots - 1]; // The last slot in the chain
+                        
+                        // Parse Labels (e.g., "1:30 PM - 2:00 PM")
+                        let startTimeLabel = startSlot.time_label.split(' - ')[0]; // "1:30 PM"
+                        let endTimeLabel = endSlot.time_label.split(' - ')[1];     // "3:30 PM" (from the last slot)
+                        let fullLabel = `${startTimeLabel} - ${endTimeLabel}`;
+                        
                         let btn = document.createElement('button');
-                        btn.className = 'list-group-item list-group-item-action text-center py-3 mb-2 shadow-sm rounded slot-btn';
+                        btn.className = 'list-group-item list-group-item-action py-3 mb-2 shadow-sm rounded slot-btn';
                         btn.innerHTML = `
-                            <div class="h6 mb-0 text-dark">${fullLabel}</div>
-                            <small class="text-success font-weight-bold">Available</small>
+                            <div>
+                                <div class="h6 mb-0">${fullLabel}</div>
+                                <small class="text-muted">Duration: ${globalDuration} mins</small>
+                            </div>
+                            <i class="fas fa-chevron-right text-gray-400"></i>
                         `;
                         btn.type = 'button';
-                        btn.onclick = function() { selectTime(this, date, rawStartTime, fullLabel); };
+                        // Pass the START time to the form
+                        btn.onclick = function() { selectTime(this, date, startSlot.raw_time, fullLabel); };
                         container.appendChild(btn);
                     }
                 }
 
-                if (!validFound) {
-                    container.innerHTML = `<div class="alert alert-secondary text-center small p-3">No space for a ${globalDuration}-min appointment.<br>Try another day.</div>`;
+                if (!validOptionsFound) {
+                    container.innerHTML = `<div class="alert alert-secondary text-center small p-3">
+                        No continuous ${globalDuration}-minute slot available.<br>Please try another date.
+                    </div>`;
                 }
             });
     }
 
-    // STEP 4
+    // STEP 4: Confirm
     function selectTime(el, date, rawTime, label) {
         document.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('active'));
         el.classList.add('active');

@@ -80,9 +80,11 @@
 
         <div class="col-lg-7">
             <div class="card shadow mb-4">
-                <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">Recent History</h6>
+                @if($history->count() > 0)
+                <div class="card-footer bg-white text-center">
+                    <a href="{{ route('patient.history') }}" class="small font-weight-bold">View Full History &rarr;</a>
                 </div>
+                @endif
                 <div class="card-body p-0">
                     <div class="table-responsive">
                         <table class="table table-striped mb-0">

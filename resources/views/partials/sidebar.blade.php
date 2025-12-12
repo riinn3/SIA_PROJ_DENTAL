@@ -47,7 +47,7 @@
         </li>
 
         <li class="nav-item">
-            <a class="nav-link" href="#">
+            <a class="nav-link" href="{{ route('patient.history') }}">
                 <i class="fas fa-fw fa-history"></i>
                 <span>My History</span>
             </a>
