@@ -31,8 +31,12 @@ class RegisteredUserController extends Controller
     {
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
-            'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:'.User::class],
+            // STRICT PH PHONE VALIDATION
+            'phone' => ['required', 'regex:/^(09|\+639)\d{9}$/'], 
+            'password' => ['required', 'confirmed', \Illuminate\Validation\Rules\Password::defaults()],
+        ], [
+            'phone.regex' => 'Please enter a valid Philippine mobile number (e.g., 0917xxxxxxx).'
         ]);
 
         $user = User::create([

@@ -1,53 +1,56 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Doctor;
 
+use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Appointment;
-use App\Models\Schedule;
 use Carbon\Carbon;
 
-class DoctorController extends Controller
+class DoctorDashboardController extends Controller
 {
-    public function dashboard()
+    public function index()
     {
         $doctorId = Auth::id();
         $today = Carbon::today();
 
-        // 1. Stats
-        $todayCount = Appointment::where('doctor_id', $doctorId)
-            ->whereDate('appointment_date', $today)
-            ->whereIn('status', ['confirmed', 'pending'])
-            ->count();
-
-        $totalTreated = Appointment::where('doctor_id', $doctorId)
-            ->where('status', 'completed')
-            ->count();
-
-        $upcomingScheduleCount = Schedule::where('doctor_id', $doctorId)
-            ->where('date', '>=', $today)
-            ->count();
-
-        // 2. Queue
-        $todayAppointments = Appointment::with(['patient', 'service'])
+        // 1. STANDARD: Focus on "Today's Agenda"
+        $todaysAppointments = Appointment::with(['patient', 'service'])
             ->where('doctor_id', $doctorId)
             ->whereDate('appointment_date', $today)
-            ->where('status', '!=', 'cancelled')
-            ->orderBy('appointment_time', 'asc')
+            ->whereIn('status', ['confirmed', 'completed']) // Only confirmed/completed
+            ->orderBy('appointment_time')
             ->get();
 
-        return view('doctor.dashboard', compact(
-            'todayCount', 'totalTreated', 'upcomingScheduleCount', 'todayAppointments'
-        ));
+        // 2. STANDARD: Upcoming Schedule (Next 7 Days)
+        $upcomingCount = Appointment::where('doctor_id', $doctorId)
+            ->where('appointment_date', '>', $today)
+            ->where('status', 'confirmed')
+            ->count();
+
+        return view('doctor.dashboard', compact('todaysAppointments', 'upcomingCount'));
     }
 
-    public function mySchedule()
+    // 3. STANDARD: Medical Notes (The Diagnosis)
+    // Doctors update the appointment with findings.
+    public function updateDiagnosis(Request $request, $appointmentId)
     {
-        $schedules = Schedule::where('doctor_id', Auth::id())
-            ->where('date', '>=', Carbon::today())
-            ->orderBy('date', 'asc')
-            ->paginate(10);
-        return view('doctor.schedule.index', compact('schedules'));
+        $request->validate([
+            'diagnosis' => 'required|string|min:10',
+            'prescription' => 'nullable|string'
+        ]);
+
+        $appt = Appointment::where('id', $appointmentId)
+            ->where('doctor_id', Auth::id())
+            ->firstOrFail();
+
+        $appt->update([
+            'diagnosis' => $request->diagnosis,
+            'prescription' => $request->prescription,
+            'status' => 'completed' // Auto-complete when notes are added
+        ]);
+
+        return back()->with('success', 'Medical notes saved successfully.');
     }
 }

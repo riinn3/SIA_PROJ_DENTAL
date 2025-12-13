@@ -51,10 +51,10 @@ Route::middleware(['auth', 'role:patient'])->group(function () {
 Route::post('/my-appointments/{id}/cancel', [App\Http\Controllers\PatientHistoryController::class, 'cancel'])->name('patient.cancel');
 });
 
-// --- DOCTOR ROUTES (Role: doctor) ---
+// --- DOCTOR ROUTES ---
 Route::middleware(['auth', 'role:doctor'])->prefix('doctor')->name('doctor.')->group(function () {
-    Route::get('/dashboard', [App\Http\Controllers\DoctorController::class, 'dashboard'])->name('dashboard');
-    Route::get('/schedule', [App\Http\Controllers\DoctorController::class, 'mySchedule'])->name('schedule.index');
+    Route::get('/dashboard', [App\Http\Controllers\Doctor\DoctorDashboardController::class, 'index'])->name('dashboard');
+    Route::post('/appointment/{id}/diagnosis', [App\Http\Controllers\Doctor\DoctorDashboardController::class, 'updateDiagnosis'])->name('diagnosis.update');
 });
 
 // --- ADMIN ROUTES (Role: admin) ---
@@ -95,14 +95,14 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
 
     // --- 4. PATIENTS ---
     Route::get('/patients', [PatientController::class, 'index'])->name('patients.index');
+    Route::get('/patients/create', [PatientController::class, 'create'])->name('patients.create');
+    Route::post('/patients', [PatientController::class, 'store'])->name('patients.store');
     Route::get('/patients/{id}', [PatientController::class, 'show'])->name('patients.show');
     Route::get('/patients/{id}/edit', [PatientController::class, 'edit'])->name('patients.edit');
     Route::put('/patients/{id}', [PatientController::class, 'update'])->name('patients.update');
     Route::delete('/patients/{id}', [PatientController::class, 'destroy'])->name('patients.destroy');
     Route::post('/patients/{id}/restore', [PatientController::class, 'restore'])->name('patients.restore');
-    Route::get('/patients/create', [PatientController::class, 'create'])->name('patients.create');
-Route::post('/patients', [PatientController::class, 'store'])->name('patients.store');
-
+    
     // --- 5. STAFF ---
     Route::get('/staff', [StaffController::class, 'index'])->name('staff.index');
     Route::get('/staff/create', [StaffController::class, 'create'])->name('staff.create');
