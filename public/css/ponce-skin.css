@@ -13,6 +13,7 @@ body {
     background-color: #f8f9fc;
     color: var(--text-dark);
     font-size: 0.9rem; /* Slightly smaller base text */
+    overflow-x: hidden; /* Prevent horizontal scroll due to fixed sidebar */
 }
 
 /* 1. SIDEBAR REDESIGN (Modern Dark) */
@@ -21,11 +22,34 @@ body {
     background: #1e1e2f !important; /* Dark Slate */
     background-image: none !important;
     transition: width 0.3s;
+
+    position: fixed; /* Make the sidebar fixed */
+    top: 0;
+    left: 0;
+    height: 100vh; /* Full viewport height */
+    overflow-y: auto; /* Allow internal scrolling if content overflows */
+    z-index: 1000; /* Ensure it's above other content */
 }
 
 .sidebar.toggled {
     width: 8rem !important; /* Make it a little wider when collapsed */
 }
+
+/* Adjust content wrapper padding to compensate for fixed sidebar */
+#content-wrapper {
+    margin-left: 280px; /* Same as sidebar width */
+    transition: margin-left 0.3s;
+}
+
+#content-wrapper.toggled {
+    margin-left: 8rem; /* When sidebar is toggled */
+}
+
+/* Ensure SB Admin 2's JS adds toggled class to content-wrapper as well */
+body.sidebar-toggled #content-wrapper {
+    margin-left: 8rem;
+}
+
 
 /* Fix active pill and center EVERYTHING when collapsed */
 .sidebar.toggled .nav-item .nav-link {
@@ -144,12 +168,17 @@ body {
 
 /* 3. ELEGANT BUTTONS */
 .btn {
-    border-radius: 50px !important;
+    border-radius: 50px !important; /* Make all buttons rounded-pill */
     padding: 0.375rem 1.2rem; /* Compact padding */
     font-size: 0.9rem;
     font-weight: 600;
     letter-spacing: 0.3px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    transition: all 0.2s ease-in-out;
+}
+
+.btn:hover {
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
 }
 
 .btn-lg {
@@ -157,15 +186,55 @@ body {
     font-size: 1rem;
 }
 
+/* Primary Button (Pink) */
 .btn-primary {
-    background-color: var(--primary);
-    border-color: var(--primary);
+    background-color: var(--primary) !important;
+    border-color: var(--primary) !important;
+    color: white !important;
 }
 
 .btn-primary:hover {
-    background-color: var(--primary-dark);
-    border-color: var(--primary-dark);
+    background-color: var(--primary-dark) !important;
+    border-color: var(--primary-dark) !important;
     box-shadow: 0 4px 8px rgba(209, 57, 108, 0.3);
+}
+
+/* Outline Primary (Pink Outline) */
+.btn-outline-primary {
+    color: var(--primary) !important;
+    border-color: var(--primary) !important;
+    background-color: transparent !important;
+}
+
+.btn-outline-primary:hover {
+    color: white !important;
+    background-color: var(--primary) !important;
+    border-color: var(--primary) !important;
+}
+
+/* Secondary Button (Gray) */
+.btn-secondary {
+    background-color: var(--text-muted) !important;
+    border-color: var(--text-muted) !important;
+    color: white !important;
+}
+
+.btn-secondary:hover {
+    background-color: #5a6268 !important; /* Darker gray */
+    border-color: #545b62 !important;
+}
+
+/* Outline Secondary (Gray Outline) */
+.btn-outline-secondary {
+    color: var(--text-muted) !important;
+    border-color: var(--text-muted) !important;
+    background-color: transparent !important;
+}
+
+.btn-outline-secondary:hover {
+    color: white !important;
+    background-color: var(--text-muted) !important;
+    border-color: var(--text-muted) !important;
 }
 
 .btn-light {
@@ -226,5 +295,12 @@ a:hover { color: var(--primary-dark); text-decoration: none; }
 .icon-circle {
     width: 60px !important; 
     height: 60px !important; 
-    font-size: 1.5rem; /* Smaller icons */
+    animation-fill-mode: both;
 }
+
+/* 9. SOFT BADGES */
+.badge-soft-success { background-color: #d1e7dd; color: #0f5132; }
+.badge-soft-warning { background-color: #fff3cd; color: #664d03; }
+.badge-soft-danger { background-color: #f8d7da; color: #842029; }
+.badge-soft-primary { background-color: #e0cffc; color: #4a0560; }
+.badge-soft-info { background-color: #cff4fc; color: #055160; }

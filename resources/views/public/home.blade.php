@@ -11,10 +11,10 @@
             <p class="lead mb-4 opacity-90" style="font-size: 1.1rem;">Experience elegant care for your perfect smile.</p>
             
             <div class="d-flex justify-content-center gap-3">
-                <a href="{{ route('login') }}" class="btn btn-light text-primary font-weight-bold shadow-sm px-4 mr-2 rounded-pill">
+                <a href="{{ route('login') }}" class="btn btn-outline-primary shadow-sm px-4 mr-2">
                     Log In
                 </a>
-                <a href="{{ route('register') }}" class="btn btn-outline-light font-weight-bold px-4 rounded-pill">
+                <a href="{{ route('register') }}" class="btn btn-outline-primary px-4">
                     New Patient
                 </a>
             </div>
@@ -49,7 +49,7 @@
                         </div>
                         <h5 class="font-weight-bold text-dark">Premium Care</h5>
                         <p class="text-muted small mb-3">Treatments tailored to your needs.</p>
-                        <a href="{{ route('services.public.index') }}" class="btn btn-sm btn-outline-success rounded-pill px-4">View Services</a>
+                        <a href="{{ route('services.public.index') }}" class="btn btn-sm btn-primary px-4">View Services</a>
                     </div>
                 </div>
             </div>
@@ -63,7 +63,7 @@
                         </div>
                         <h5 class="font-weight-bold text-dark">Easy Booking</h5>
                         <p class="text-muted small mb-3">Schedule your visit in clicks.</p>
-                        <a href="{{ route('patient.booking.step1') }}" class="btn btn-sm btn-outline-info rounded-pill px-4">Book Now</a>
+                        <a href="{{ route('patient.booking.step1') }}" class="btn btn-sm btn-primary px-4">Book Now</a>
                     </div>
                 </div>
             </div>

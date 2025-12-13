@@ -7,7 +7,7 @@
             <h1 class="h3 font-weight-bold text-gray-800">Our Specialists</h1>
             <p class="text-muted small mb-0">Meet the experts behind your smile.</p>
         </div>
-        <a href="{{ route('home') }}" class="btn btn-light btn-sm shadow-sm text-primary font-weight-bold">
+        <a href="{{ route('home') }}" class="btn btn-outline-primary btn-sm shadow-sm">
             <i class="fas fa-arrow-left mr-1"></i> Back
         </a>
     </div>

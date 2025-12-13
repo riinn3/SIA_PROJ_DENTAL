@@ -28,6 +28,7 @@ class Appointment extends Model
     protected $casts = [
         'appointment_date' => 'date',
         'appointment_time' => 'datetime',
+        'duration_minutes' => 'integer', // Added this line
         'cancelled_at' => 'datetime',
     ];
 

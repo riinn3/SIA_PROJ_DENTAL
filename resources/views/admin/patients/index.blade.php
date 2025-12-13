@@ -3,7 +3,7 @@
 @section('content')
     <div class="d-sm-flex align-items-center justify-content-between mb-4">
         <h1 class="h3 mb-0 text-gray-800">Patient Database</h1>
-        <a href="{{ route('admin.patients.create') }}" class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm">
+        <a href="{{ route('admin.patients.create') }}" class="d-none d-sm-inline-block btn btn-primary btn-sm shadow-sm rounded-pill px-3">
             <i class="fas fa-user-plus fa-sm text-white-50"></i> Register Patient
         </a>
     </div>
@@ -43,7 +43,23 @@
                 </li>
             </ul>
         </div>
+
         <div class="card-body">
+            <form action="{{ route('admin.patients.index') }}" method="GET" class="form-inline mb-3">
+                <input type="hidden" name="view" value="{{ $view }}">
+                <div class="input-group mr-2">
+                    <input type="text" class="form-control rounded-pill" name="search" placeholder="Search by name or email..." value="{{ $search }}">
+                    <div class="input-group-append">
+                        <button class="btn btn-primary rounded-pill ml-2 px-3" type="submit">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </div>
+                @if($search)
+                    <a href="{{ route('admin.patients.index', ['view' => $view]) }}" class="btn btn-secondary rounded-pill px-3">Reset</a>
+                @endif
+            </form>
+
             <div class="table-responsive">
                 <table class="table table-bordered table-hover">
                     <thead><tr><th>Name</th><th>Contact</th><th>Visits</th><th>Actions</th></tr></thead>
@@ -55,15 +71,15 @@
                             <td>{{ $patient->appointments_count }} Records</td>
                             <td>
                                 @if($view == 'archived')
-                                    <form action="{{ route('admin.patients.restore', $patient->id) }}" method="POST">
-                                        @csrf <button class="btn btn-success btn-sm">Restore</button>
+                                    <form action="{{ route('admin.patients.restore', $patient->id) }}" method="POST" class="d-inline">
+                                        @csrf <button class="btn btn-primary btn-sm rounded-pill px-3">Restore</button>
                                     </form>
                                 @else
-                                    <a href="{{ route('admin.patients.show', $patient->id) }}" class="btn btn-primary btn-sm">View</a>
-                                    <a href="{{ route('admin.patients.edit', $patient->id) }}" class="btn btn-info btn-sm">Edit</a>
-                                    <form action="{{ route('admin.patients.destroy', $patient->id) }}" method="POST" style="display:inline" onsubmit="return confirm('Archive?');">
+                                    <a href="{{ route('admin.patients.show', $patient->id) }}" class="btn btn-primary btn-sm rounded-pill px-3"><i class="fas fa-eye"></i> View</a>
+                                    <a href="{{ route('admin.patients.edit', $patient->id) }}" class="btn btn-outline-primary btn-sm rounded-pill px-3"><i class="fas fa-edit"></i> Edit</a>
+                                    <form action="{{ route('admin.patients.destroy', $patient->id) }}" method="POST" style="display:inline" onsubmit="return confirm('Archive patient: {{ $patient->name }}?');">
                                         @csrf @method('DELETE')
-                                        <button class="btn btn-secondary btn-sm">Archive</button>
+                                        <button class="btn btn-secondary btn-sm rounded-pill px-3"><i class="fas fa-archive"></i> Archive</button>
                                     </form>
                                 @endif
                             </td>

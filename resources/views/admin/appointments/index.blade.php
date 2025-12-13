@@ -4,7 +4,7 @@
 
     <div class="d-sm-flex align-items-center justify-content-between mb-4">
         <h1 class="h3 mb-0 text-gray-800">Appointment Management</h1>
-        <a href="{{ route('admin.schedules.index') }}" class="btn btn-sm btn-primary shadow-sm">
+        <a href="{{ route('admin.schedules.index') }}" class="btn btn-primary btn-sm shadow-sm rounded-pill px-3">
             <i class="fas fa-calendar-plus fa-sm text-white-50"></i> Book via Calendar
         </a>
     </div>
@@ -22,22 +22,27 @@
         <div class="card-header py-3">
             <ul class="nav nav-pills card-header-pills">
                 <li class="nav-item">
-                    <a class="nav-link {{ $status == 'pending' ? 'active' : '' }}" href="{{ route('admin.appointments.index', ['status' => 'pending']) }}">
+                    <a class="nav-link {{ $currentTab == 'today' ? 'active' : '' }}" href="{{ route('admin.appointments.index', ['date' => now()->format('Y-m-d')]) }}">
+                        <i class="fas fa-calendar-day mr-1"></i> Today
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {{ $currentTab == 'pending' ? 'active' : '' }}" href="{{ route('admin.appointments.index', ['status' => 'pending']) }}">
                         <i class="fas fa-clock mr-1"></i> Pending
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link {{ $status == 'confirmed' ? 'active' : '' }}" href="{{ route('admin.appointments.index', ['status' => 'confirmed']) }}">
+                    <a class="nav-link {{ $currentTab == 'confirmed' ? 'active' : '' }}" href="{{ route('admin.appointments.index', ['status' => 'confirmed']) }}">
                         <i class="fas fa-check mr-1"></i> Confirmed
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link {{ $status == 'completed' ? 'active' : '' }}" href="{{ route('admin.appointments.index', ['status' => 'completed']) }}">
+                    <a class="nav-link {{ $currentTab == 'completed' ? 'active' : '' }}" href="{{ route('admin.appointments.index', ['status' => 'completed']) }}">
                         <i class="fas fa-history mr-1"></i> History
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link {{ $status == 'cancelled' ? 'active bg-danger text-white' : 'text-danger' }}" href="{{ route('admin.appointments.index', ['status' => 'cancelled']) }}">
+                    <a class="nav-link {{ $currentTab == 'cancelled' ? 'active bg-danger text-white' : 'text-danger' }}" href="{{ route('admin.appointments.index', ['status' => 'cancelled']) }}">
                         <i class="fas fa-ban mr-1"></i> Cancelled
                     </a>
                 </li>
@@ -94,7 +99,8 @@
                             <th>Patient</th>
                             <th>Doctor / Service</th>
                             <th>Duration</th>
-                            @if($status == 'cancelled')
+                            <th>Status</th>
+                            @if($currentTab == 'cancelled')
                                 <th>Reason</th>
                             @else
                                 <th class="text-right pr-4">Actions</th>
@@ -124,14 +130,84 @@
                             <td>
                                 <span class="badge badge-light border">{{ $appt->duration_minutes }} mins</span>
                             </td>
+                            <td>
+                                @php
+                                    $statusClass = '';
+                                    switch ($appt->status) {
+                                        case 'pending': $statusClass = 'badge-soft-warning'; break;
+                                        case 'confirmed': $statusClass = 'badge-soft-primary'; break; // Changed to primary for confirmed
+                                        case 'completed': $statusClass = 'badge-soft-success'; break;
+                                        case 'cancelled': $statusClass = 'badge-soft-danger'; break;
+                                        default: $statusClass = 'badge-secondary'; break;
+                                    }
+                                @endphp
+                                <span class="badge {{ $statusClass }} px-3 py-2 rounded-pill">{{ ucfirst($appt->status) }}</span>
+                            </td>
                             {{-- ... rest of your row logic ... --}}
-                            @if($status == 'cancelled')
+                            @if($currentTab == 'cancelled')
                                 <td class="text-danger small font-italic">"{{ $appt->cancellation_reason }}"</td>
                             @else
                                 <td class="text-right pr-4">
-                                    {{-- Use your existing action buttons here --}}
-                                    <a href="{{ route('admin.appointments.show', $appt->id) }}" class="btn btn-sm btn-info"><i class="fas fa-eye"></i></a>
-                                    {{-- ... etc ... --}}
+                                    @php
+                                        $now = \Carbon\Carbon::now();
+                                        $isFutureAppointment = $appt->appointment_date->isFuture();
+                                        $queryParams = array_merge(request()->query(), ['id' => $appt->id]); // Preserve current filters
+                                    @endphp
+
+                                    @if($isFutureAppointment)
+                                        <a href="{{ route('admin.appointments.show', array_merge(['id' => $appt->id], request()->query())) }}" class="btn btn-primary btn-sm rounded-pill px-3"><i class="fas fa-eye"></i> View</a>
+                                        <a href="{{ route('admin.appointments.edit', array_merge(['id' => $appt->id], request()->query())) }}" class="btn btn-outline-primary btn-sm rounded-pill px-3">
+                                            <i class="fas fa-edit"></i> Edit
+                                        </a>
+                                    @else
+                                        <a href="{{ route('admin.appointments.show', array_merge(['id' => $appt->id], request()->query())) }}" class="btn btn-primary btn-sm rounded-pill px-3"><i class="fas fa-eye"></i> View</a>
+                                        
+                                        @if($appt->status == 'pending')
+                                            <form action="{{ route('admin.appointments.confirm', $appt->id) }}" method="POST" class="d-inline">
+                                                @csrf
+                                                @foreach(request()->query() as $key => $value) <input type="hidden" name="{{ $key }}" value="{{ $value }}"> @endforeach
+                                                <button class="btn btn-primary btn-sm rounded-pill px-3"><i class="fas fa-check"></i> Confirm</button>
+                                            </form>
+                                        @elseif($appt->status == 'confirmed')
+                                            <form action="{{ route('admin.appointments.complete', $appt->id) }}" method="POST" class="d-inline">
+                                                @csrf
+                                                @foreach(request()->query() as $key => $value) <input type="hidden" name="{{ $key }}" value="{{ $value }}"> @endforeach
+                                                <button class="btn btn-primary btn-sm rounded-pill px-3"><i class="fas fa-check-double"></i> Complete</button>
+                                            </form>
+                                        @endif
+                                        @if($appt->status != 'completed')
+                                            <button type="button" class="btn btn-secondary btn-sm rounded-pill px-3" data-toggle="modal" data-target="#cancelModal-{{ $appt->id }}"><i class="fas fa-times"></i> Cancel</button>
+                                        @endif
+                                    @endif
+
+                                    {{-- MODAL FOR CANCELLATION (placed here for context) --}}
+                                    <div class="modal fade" id="cancelModal-{{ $appt->id }}" tabindex="-1" role="dialog" aria-hidden="true">
+                                        <div class="modal-dialog" role="document">
+                                            <div class="modal-content">
+                                                <div class="modal-header">
+                                                    <h5 class="modal-title">Cancel Appointment</h5>
+                                                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                                        <span aria-hidden="true">&times;</span>
+                                                    </button>
+                                                </div>
+                                                <form action="{{ route('admin.appointments.cancel', $appt->id) }}" method="POST">
+                                                    @csrf
+                                                    @foreach(request()->query() as $key => $value) <input type="hidden" name="{{ $key }}" value="{{ $value }}"> @endforeach
+                                                    <div class="modal-body">
+                                                        <p>Are you sure you want to cancel the appointment for <strong>{{ $appt->patient->name ?? 'Unknown' }}</strong> on {{ $appt->appointment_date->format('M d, Y') }} at {{ $appt->appointment_time->format('h:i A') }}?</p>
+                                                        <div class="form-group">
+                                                            <label for="cancellation_reason">Reason for Cancellation</label>
+                                                            <textarea name="cancellation_reason" id="cancellation_reason" class="form-control" rows="3" required></textarea>
+                                                        </div>
+                                                    </div>
+                                                    <div class="modal-footer">
+                                                        <button type="button" class="btn btn-secondary rounded-pill px-4" data-dismiss="modal">Close</button>
+                                                        <button type="submit" class="btn btn-secondary rounded-pill px-4">Confirm Cancel</button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </td>
                             @endif
                         </tr>

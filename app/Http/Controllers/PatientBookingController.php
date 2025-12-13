@@ -26,9 +26,23 @@ class PatientBookingController extends Controller
         $request->validate([
             'service_id' => 'required|exists:services,id',
             'doctor_id' => 'required|exists:users,id',
-            'appointment_date' => 'required|date',
-            'appointment_time' => 'required',
-        ]);
+            'appointment_date' => [
+                'required',
+                'date',
+                'after_or_equal:today',
+                'before_or_equal:' . \Carbon\Carbon::now()->addMonths(2)->endOfMonth()->toDateString(),
+            ],
+            'appointment_time' => [
+                'required',
+                // Custom rule: if date is today, then time must be in future
+                function ($attribute, $value, $fail) use ($request) {
+                    $appointmentDateTime = \Carbon\Carbon::parse($request->appointment_date . ' ' . $value);
+                    if ($appointmentDateTime->isToday() && $appointmentDateTime->lt(\Carbon\Carbon::now())) {
+                        $fail('The ' . $attribute . ' must be a future time for today\'s appointments.');
+                    }
+                },
+            ],
+        ]); // Added semicolon
 
         $service = Service::findOrFail($request->service_id);
 

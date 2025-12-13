@@ -44,7 +44,7 @@ class DoctorScheduleController extends Controller
             [
                 'start_time' => $request->is_day_off ? '00:00' : $request->start_time,
                 'end_time' => $request->is_day_off ? '00:00' : $request->end_time,
-                'max_appointments' => 99, 
+                'max_appointments' => $request->max_appointments ?? 20, 
             ]
         );
 

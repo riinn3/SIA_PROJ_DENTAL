@@ -4,121 +4,110 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use App\Models\Schedule;
 use App\Models\Appointment;
+use App\Models\Schedule;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
+use App\Services\ScheduleService; // Import the service
 
 class CalendarController extends Controller
 {
-    // 1. CALENDAR EVENTS (Dots/Colors) - (No changes needed here, but included for context)
+    protected $scheduleService; // Declare the property
+
+    public function __construct(ScheduleService $scheduleService) // Inject the service
+    {
+        $this->scheduleService = $scheduleService;
+    }
+
+    // 1. CALENDAR EVENTS
     public function getEvents(Request $request)
     {
-        $start = $request->start;
-        $end = $request->end;
+        $start = Carbon::parse($request->start);
+        $end = Carbon::parse($request->end);
         $doctorId = $request->doctor_id;
 
-        $schedules = Schedule::whereBetween('date', [$start, $end])
+        // Fetch SAVED overrides
+        $savedSchedules = Schedule::whereBetween('date', [$start, $end])
             ->where('doctor_id', $doctorId)
-            ->get();
+            ->get()
+            ->keyBy(function($item) { return $item->date->format('Y-m-d'); });
 
         $events = [];
         $isPatient = Auth::check() && Auth::user()->role === 'patient';
 
-        foreach ($schedules as $sched) {
-            if ($isPatient) {
+        // Iterate through every day in the range to generate Virtual or Real events
+        $curr = $start->copy();
+        while ($curr <= $end) {
+            $dateStr = $curr->format('Y-m-d');
+            
+            // Use ScheduleService to get the schedule (real or virtual)
+            $actualSchedule = $this->scheduleService->getDoctorSchedule($dateStr, $doctorId);
+
+            if (!$actualSchedule) { // If no actual or virtual schedule (e.g., Sunday)
+                $curr->addDay();
+                continue; // Skip and don't add an event
+            }
+
+            $startT = Carbon::parse($actualSchedule->start_time);
+            $endT = Carbon::parse($actualSchedule->end_time);
+            $isDayOff = $startT->format('H:i') === '00:00' && $endT->format('H:i') === '00:00';
+
+            $title = '';
+            $color = '';
+            $textColor = '';
+            $id = $savedSchedules->get($dateStr)->id ?? 'virtual-' . $dateStr; // Use actual schedule ID if exists
+
+            if ($isDayOff) {
+                $title = "DAY OFF";
+                $color = '#e74a3b';
+                $textColor = '#ffffff';
+            } elseif ($isPatient) {
                 $title = "Open";
-                $color = '#1cc88a'; 
+                $color = '#1cc88a';
                 $textColor = '#ffffff';
             } else {
-                $count = Appointment::whereDate('appointment_date', $sched->date)
+                $count = Appointment::whereDate('appointment_date', $dateStr)
                     ->where('doctor_id', $doctorId)->where('status', '!=', 'cancelled')->count();
+                
+                // SKIP IF 0 PATIENTS (Don't clutter calendar) unless it's an explicit schedule
+                if ($count == 0 && !$isDayOff && !$savedSchedules->has($dateStr)) {
+                    $curr->addDay();
+                    continue;
+                }
+
                 $title = "$count Patient(s)";
                 $color = '#ffffff';
                 $textColor = '#4e73df';
             }
 
             $events[] = [
-                'id' => $sched->id,
+                'id' => $id,
                 'title' => $title,
-                'start' => $sched->date->format('Y-m-d'),
+                'start' => $dateStr,
                 'backgroundColor' => $color,
                 'borderColor' => $isPatient ? $color : '#4e73df',
-                'textColor' => $textColor
+                'textColor' => $textColor,
+                'extendedProps' => [
+                    'start_time' => $actualSchedule->start_time,
+                    'end_time' => $actualSchedule->end_time,
+                ]
             ];
+            $curr->addDay();
         }
 
         return response()->json($events);
     }
 
-    // 2. SLOT DETAILS (STRICT BLOCKING) - *** FIXED ***
+    // 2. SLOT DETAILS
     public function getDayDetails(Request $request)
     {
         $date = $request->date;
         $doctorId = $request->doctor_id;
+        $durationMinutes = $request->duration_minutes ?? 30; // Default to 30 min if not provided
+        $excludeAppointmentId = $request->exclude_appointment_id ?? null;
 
-        // 1. Get Schedule
-        $schedule = Schedule::whereDate('date', $date)->where('doctor_id', $doctorId)->first();
-        if (!$schedule) return response()->json(['status' => 'closed', 'message' => 'Closed']);
+        $slotsData = $this->scheduleService->generateTimeSlots($date, $doctorId, (int)$durationMinutes, (int)$excludeAppointmentId);
 
-        // 2. Get Bookings
-        $bookings = Appointment::whereDate('appointment_date', $date)
-            ->where('doctor_id', $doctorId)
-            ->where('status', '!=', 'cancelled')
-            ->get();
-
-        // 3. Generate Slots
-        $slots = [];
-        $startTime = Carbon::parse($schedule->start_time);
-        $endTime = Carbon::parse($schedule->end_time);
-        
-        // Hardcoded Lunch (12:00 PM - 1:00 PM)
-        $lunchStart = Carbon::parse($date . ' 12:00:00');
-        $lunchEnd = Carbon::parse($date . ' 13:00:00');
-
-        while ($startTime < $endTime) {
-            $slotStart = $startTime->copy();
-            $slotEnd = $startTime->copy()->addMinutes(30);
-            $label = $slotStart->format('g:i A') . ' - ' . $slotEnd->format('g:i A');
-
-            // STATUS DEFAULT: AVAILABLE
-            $status = 'available';
-            $details = 'Available';
-            $apptId = null; // Default null
-
-            // CHECK 1: LUNCH
-            if ($slotStart->betweenIncluded($lunchStart, $lunchEnd->copy()->subMinute())) {
-                $status = 'lunch';
-                $details = 'Lunch Break';
-            }
-
-            // CHECK 2: BOOKINGS
-            foreach ($bookings as $appt) {
-                // Ensure we parse the DB time correctly
-                $apptStart = Carbon::parse($date . ' ' . $appt->appointment_time->format('H:i:s'));
-                $apptEnd = $apptStart->copy()->addMinutes($appt->duration_minutes);
-
-                // If Slot Start is inside the Appointment Duration
-                if ($slotStart >= $apptStart && $slotStart < $apptEnd) {
-                    $status = 'booked';
-                    $details = 'Booked'; 
-                    $apptId = $appt->id; // <--- VITAL: SEND ID SO ADMIN CAN CLICK
-                    break; 
-                }
-            }
-
-            $slots[] = [
-                'time_label' => $label,
-                'raw_time' => $slotStart->format('H:i'),
-                'raw_date' => $date, // <--- VITAL: SEND DATE FOR LINK
-                'type' => $status,
-                'details' => $details,
-                'appt_id' => $apptId // <--- Added
-            ];
-
-            $startTime->addMinutes(30);
-        }
-
-        return response()->json(['status' => 'open', 'slots' => $slots]);
+        return response()->json($slotsData);
     }
 }

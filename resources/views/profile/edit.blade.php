@@ -26,34 +26,40 @@
                 <div class="card-body p-5">
                     
                     {{-- 1. PROFILE INFO --}}
-                    <h5 class="font-weight-bold text-dark mb-4 pb-2 border-bottom">
-                        <i class="fas fa-user-circle text-primary mr-2"></i> Personal Information
-                    </h5>
+                    <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
+                        <h5 class="font-weight-bold text-dark mb-0">
+                            <i class="fas fa-user-circle text-primary mr-2"></i> Personal Information
+                        </h5>
+                        <button type="button" id="editProfileBtn" class="btn btn-sm btn-outline-primary rounded-pill shadow-sm">
+                            <i class="fas fa-pen mr-1"></i> Edit Details
+                        </button>
+                    </div>
                     
-                    <form method="post" action="{{ route('profile.update') }}">
+                    <form method="post" action="{{ route('profile.update') }}" id="profileForm">
                         @csrf
                         @method('patch')
                         
                         <div class="form-row">
                             <div class="form-group col-md-6">
                                 <label class="small font-weight-bold text-gray-600">Full Name</label>
-                                <input type="text" name="name" class="form-control rounded-pill" value="{{ old('name', $user->name) }}" required>
+                                <input type="text" name="name" class="form-control rounded-pill profile-input" value="{{ old('name', $user->name) }}" required disabled>
                                 @error('name') <small class="text-danger pl-3">{{ $message }}</small> @enderror
                             </div>
                             <div class="form-group col-md-6">
                                 <label class="small font-weight-bold text-gray-600">Email Address</label>
-                                <input type="email" name="email" class="form-control rounded-pill" value="{{ old('email', $user->email) }}" required>
+                                <input type="email" name="email" class="form-control rounded-pill profile-input" value="{{ old('email', $user->email) }}" required disabled>
                                 @error('email') <small class="text-danger pl-3">{{ $message }}</small> @enderror
                             </div>
                         </div>
                         <div class="form-row">
                              <div class="form-group col-md-6">
                                 <label class="small font-weight-bold text-gray-600">Phone Number</label>
-                                <input type="text" name="phone" class="form-control rounded-pill" value="{{ old('phone', $user->phone) }}">
+                                <input type="text" name="phone" class="form-control rounded-pill profile-input" value="{{ old('phone', $user->phone) }}" disabled>
                             </div>
                         </div>
 
-                        <div class="text-right mt-3">
+                        <div class="text-right mt-3" id="saveProfileContainer" style="display:none;">
+                            <button type="button" id="cancelEditBtn" class="btn btn-link text-muted mr-2">Cancel</button>
                             <button type="submit" class="btn btn-primary btn-sm px-4 rounded-pill font-weight-bold shadow-sm">
                                 Save Profile Changes
                             </button>
@@ -103,3 +109,28 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+    // Profile Edit Toggle
+    const editBtn = document.getElementById('editProfileBtn');
+    const cancelBtn = document.getElementById('cancelEditBtn');
+    const saveContainer = document.getElementById('saveProfileContainer');
+    const inputs = document.querySelectorAll('.profile-input');
+
+    if(editBtn) {
+        editBtn.addEventListener('click', function() {
+            inputs.forEach(input => input.disabled = false);
+            saveContainer.style.display = 'block';
+            editBtn.style.display = 'none';
+            if(inputs.length > 0) inputs[0].focus(); 
+        });
+
+        cancelBtn.addEventListener('click', function() {
+            inputs.forEach(input => input.disabled = true);
+            saveContainer.style.display = 'none';
+            editBtn.style.display = 'block';
+        });
+    }
+</script>
+@endpush

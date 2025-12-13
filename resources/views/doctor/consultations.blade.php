@@ -27,7 +27,7 @@
 
     <div class="card shadow mb-4">
         <div class="card-header py-3">
-            <h6 class="m-0 font-weight-bold text-primary">Recent Visits</h6>
+            <h6 class="m-0 font-weight-bold text-primary">Past Consultations</h6>
         </div>
         <div class="card-body p-0">
             <div class="table-responsive">
@@ -64,9 +64,9 @@
                             {{-- Status Badge --}}
                             <td class="align-middle">
                                 @if($appt->diagnosis)
-                                    <span class="badge badge-success px-2"><i class="fas fa-check mr-1"></i> Recorded</span>
+                                    <span class="badge badge-soft-success px-3 py-2 rounded-pill"><i class="fas fa-check mr-1"></i> Recorded</span>
                                 @else
-                                    <span class="badge badge-warning px-2"><i class="fas fa-pen mr-1"></i> Needs Notes</span>
+                                    <span class="badge badge-soft-warning px-3 py-2 rounded-pill"><i class="fas fa-pen mr-1"></i> Needs Notes</span>
                                 @endif
                             </td>
 
@@ -111,8 +111,8 @@
                                                     </div>
                                                 </div>
                                                 <div class="modal-footer bg-light">
-                                                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                                                    <button type="submit" class="btn btn-success">
+                                                    <button type="button" class="btn btn-secondary rounded-pill px-4" data-dismiss="modal">Close</button>
+                                                    <button type="submit" class="btn btn-primary rounded-pill px-4">
                                                         <i class="fas fa-save mr-1"></i> Save Record
                                                     </button>
                                                 </div>

@@ -4,7 +4,7 @@
 
     <div class="d-sm-flex align-items-center justify-content-between mb-4">
         <h1 class="h3 mb-0 text-gray-800">Services Inventory</h1>
-        <a href="{{ route('admin.services.create') }}" class="btn btn-sm btn-primary shadow-sm">
+        <a href="{{ route('admin.services.create') }}" class="btn btn-primary shadow-sm rounded-pill px-3">
             <i class="fas fa-plus fa-sm text-white-50"></i> Add New Service
         </a>
     </div>
@@ -56,19 +56,19 @@
                                 @if($view == 'archived')
                                     <form action="{{ route('admin.services.restore', $service->id) }}" method="POST" style="display:inline;">
                                         @csrf
-                                        <button class="btn btn-success btn-sm" title="Restore">
-                                            <i class="fas fa-trash-restore"></i>
+                                        <button class="btn btn-primary btn-sm rounded-pill px-3" title="Restore">
+                                            <i class="fas fa-trash-restore"></i> Restore
                                         </button>
                                     </form>
                                 @else
-                                    <a href="{{ route('admin.services.edit', $service->id) }}" class="btn btn-info btn-sm btn-circle" title="Edit">
-                                        <i class="fas fa-pen"></i>
+                                    <a href="{{ route('admin.services.edit', $service->id) }}" class="btn btn-outline-primary btn-sm rounded-pill px-3" title="Edit">
+                                        <i class="fas fa-pen"></i> Edit
                                     </a>
                                     <form action="{{ route('admin.services.destroy', $service->id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Archive this service?');">
                                         @csrf
                                         @method('DELETE')
-                                        <button class="btn btn-warning btn-sm btn-circle" title="Archive">
-                                            <i class="fas fa-archive"></i>
+                                        <button class="btn btn-secondary btn-sm rounded-pill px-3" title="Archive">
+                                            <i class="fas fa-archive"></i> Archive
                                         </button>
                                     </form>
                                 @endif

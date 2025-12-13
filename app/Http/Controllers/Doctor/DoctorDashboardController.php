@@ -18,7 +18,7 @@ class DoctorDashboardController extends Controller
         $doctorId = Auth::id();
         $today = Carbon::today();
 
-        // 1. Get Today's Appointments
+        // 1. Get Today's Appointments (All)
         $todaysAppointments = Appointment::with(['patient', 'service'])
             ->where('doctor_id', $doctorId)
             ->whereDate('appointment_date', $today)
@@ -26,14 +26,29 @@ class DoctorDashboardController extends Controller
             ->orderBy('appointment_time')
             ->get();
 
-        // 2. Count Upcoming (Next 7 Days)
-        $upcomingCount = Appointment::where('doctor_id', $doctorId)
+        // 2. Upcoming List (Next 7 Days)
+        $upcomingAppointments = Appointment::with(['patient', 'service'])
+            ->where('doctor_id', $doctorId)
             ->where('appointment_date', '>', $today)
             ->where('appointment_date', '<=', $today->copy()->addDays(7))
             ->where('status', 'confirmed')
-            ->count();
+            ->orderBy('appointment_date')
+            ->orderBy('appointment_time')
+            ->get();
+            
+        $upcomingCount = $upcomingAppointments->count();
 
-        return view('doctor.dashboard', compact('todaysAppointments', 'upcomingCount'));
+        // 3. IDENTIFY "UP NEXT" (First confirmed, not completed)
+        // We look for the first one that is 'confirmed' and time is >= now (or just the first confirmed in the sorted list that isn't completed)
+        // Simplification: Just take the first 'confirmed' one from today's list that matches time
+        $nextPatient = $todaysAppointments->where('status', 'confirmed')->first(); 
+        
+        // 4. Get Today's Working Hours
+        $schedule = \App\Models\Schedule::where('doctor_id', $doctorId)
+            ->where('date', $today)
+            ->first();
+
+        return view('doctor.dashboard', compact('todaysAppointments', 'upcomingCount', 'upcomingAppointments', 'nextPatient', 'schedule'));
     }
 
     /**
@@ -41,10 +56,10 @@ class DoctorDashboardController extends Controller
      */
     public function recentConsultations()
     {
-        // Fetch appointments that are either Confirmed (Ready for checkup) or Completed (Done)
+        // Fetch appointments that are completed (past interactions)
         $appointments = Appointment::with(['patient', 'service'])
             ->where('doctor_id', Auth::id())
-            ->whereIn('status', ['confirmed', 'completed'])
+            ->where('status', 'completed')
             ->orderByDesc('appointment_date') // Newest first
             ->orderByDesc('appointment_time')
             ->paginate(10);
