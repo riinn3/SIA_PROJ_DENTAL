@@ -17,6 +17,14 @@
             </button>
         </div>
     @endif
+    @if(session('error'))
+        <div class="alert alert-danger border-left-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-triangle mr-2"></i> {{ session('error') }}
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+    @endif
 
     <div class="card shadow mb-4">
         <div class="card-header py-3">
@@ -111,7 +119,6 @@
 
                     <tbody>
                         @forelse($appointments as $appt)
-                        {{-- ... (Keep your existing table body rows here) ... --}}
                         <tr>
                             <td class="pl-4">
                                 <div class="font-weight-bold text-dark">{{ $appt->appointment_date->format('M d, Y') }}</div>
@@ -135,7 +142,7 @@
                                     $statusClass = '';
                                     switch ($appt->status) {
                                         case 'pending': $statusClass = 'badge-soft-warning'; break;
-                                        case 'confirmed': $statusClass = 'badge-soft-primary'; break; // Changed to primary for confirmed
+                                        case 'confirmed': $statusClass = 'badge-soft-primary'; break;
                                         case 'completed': $statusClass = 'badge-soft-success'; break;
                                         case 'cancelled': $statusClass = 'badge-soft-danger'; break;
                                         default: $statusClass = 'badge-secondary'; break;
@@ -143,9 +150,15 @@
                                 @endphp
                                 <span class="badge {{ $statusClass }} px-3 py-2 rounded-pill">{{ ucfirst($appt->status) }}</span>
                             </td>
-                            {{-- ... rest of your row logic ... --}}
                             @if($currentTab == 'cancelled')
-                                <td class="text-danger small font-italic">"{{ $appt->cancellation_reason }}"</td>
+                                <td>
+                                    <div class="text-danger small font-italic mb-2">"{{ $appt->cancellation_reason }}"</div>
+                                    <form action="{{ route('admin.appointments.restore', $appt->id) }}" method="POST" class="d-inline">
+                                        @csrf
+                                        @foreach(request()->query() as $key => $value) <input type="hidden" name="{{ $key }}" value="{{ $value }}"> @endforeach
+                                        <button class="btn btn-success btn-sm rounded-pill px-3"><i class="fas fa-undo"></i> Restore</button>
+                                    </form>
+                                </td>
                             @else
                                 <td class="text-right pr-4">
                                     @php
@@ -175,46 +188,15 @@
                                                 <button class="btn btn-primary btn-sm rounded-pill px-3"><i class="fas fa-check-double"></i> Complete</button>
                                             </form>
                                         @endif
-                                        @if($appt->status != 'completed')
-                                            <button type="button" class="btn btn-secondary btn-sm rounded-pill px-3" data-toggle="modal" data-target="#cancelModal-{{ $appt->id }}"><i class="fas fa-times"></i> Cancel</button>
-                                        @endif
+                                        {{-- Cancel button moved to show view --}}
                                     @endif
-
-                                    {{-- MODAL FOR CANCELLATION (placed here for context) --}}
-                                    <div class="modal fade" id="cancelModal-{{ $appt->id }}" tabindex="-1" role="dialog" aria-hidden="true">
-                                        <div class="modal-dialog" role="document">
-                                            <div class="modal-content">
-                                                <div class="modal-header">
-                                                    <h5 class="modal-title">Cancel Appointment</h5>
-                                                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                                        <span aria-hidden="true">&times;</span>
-                                                    </button>
-                                                </div>
-                                                <form action="{{ route('admin.appointments.cancel', $appt->id) }}" method="POST">
-                                                    @csrf
-                                                    @foreach(request()->query() as $key => $value) <input type="hidden" name="{{ $key }}" value="{{ $value }}"> @endforeach
-                                                    <div class="modal-body">
-                                                        <p>Are you sure you want to cancel the appointment for <strong>{{ $appt->patient->name ?? 'Unknown' }}</strong> on {{ $appt->appointment_date->format('M d, Y') }} at {{ $appt->appointment_time->format('h:i A') }}?</p>
-                                                        <div class="form-group">
-                                                            <label for="cancellation_reason">Reason for Cancellation</label>
-                                                            <textarea name="cancellation_reason" id="cancellation_reason" class="form-control" rows="3" required></textarea>
-                                                        </div>
-                                                    </div>
-                                                    <div class="modal-footer">
-                                                        <button type="button" class="btn btn-secondary rounded-pill px-4" data-dismiss="modal">Close</button>
-                                                        <button type="submit" class="btn btn-secondary rounded-pill px-4">Confirm Cancel</button>
-                                                    </div>
-                                                </form>
-                                            </div>
-                                        </div>
-                                    </div>
                                 </td>
                             @endif
                         </tr>
                         @empty
                         <tr><td colspan="6" class="text-center py-5 text-muted">No appointments found.</td></tr>
                         @endforelse
-                    </tbody>    
+                    </tbody>
                 </table>
             </div>
         </div>

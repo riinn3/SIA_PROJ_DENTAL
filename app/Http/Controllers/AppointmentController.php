@@ -274,7 +274,32 @@ class AppointmentController extends Controller
             ->with('success', 'Appointment updated successfully.');
     }
 
-    // --- 10. BLOCK SLOT (Ajax for Calendar) ---
+    // --- 10. RESTORE CANCELLED APPOINTMENT ---
+    public function restore(Request $request, $id)
+    {
+        $appointment = Appointment::findOrFail($id);
+
+        if ($appointment->status !== 'cancelled') {
+            return redirect()->route('admin.appointments.index', $request->all())->with('error', 'Only cancelled appointments can be restored.');
+        }
+
+        // Restore to pending status, clear cancellation details
+        $appointment->update([
+            'status' => 'pending',
+            'cancellation_reason' => null,
+            'cancelled_by' => null,
+            'cancelled_at' => null,
+        ]);
+
+        // Optional: Trigger re-evaluation of schedule/slot availability here if needed
+        // For simplicity, we assume restoring to pending means it will be manually re-confirmed
+        // or re-checked against schedule by an admin.
+
+        return redirect()->route('admin.appointments.index', array_merge($request->query(), ['status' => 'pending']))
+            ->with('success', 'Appointment restored successfully to pending status.');
+    }
+
+    // --- 11. BLOCK SLOT (Ajax for Calendar) ---
     public function blockSlot(Request $request)
     {
         if ($request->status === 'reserved') {

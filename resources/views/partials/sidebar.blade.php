@@ -23,7 +23,7 @@
         <div class="sidebar-heading">Clinic Operations</div>
 
         <li class="nav-item {{ request()->routeIs('admin.appointments.*') ? 'active' : '' }}">
-            <a class="nav-link" href="{{ route('admin.appointments.index') }}">
+            <a class="nav-link" href="{{ route('admin.appointments.index', ['date' => now()->format('Y-m-d')]) }}">
                 <i class="fas fa-calendar-check"></i><span>Appointments</span>
             </a>
         </li>

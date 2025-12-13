@@ -117,6 +117,8 @@ Route::middleware(['auth', 'role:admin', 'verified'])->prefix('admin')->name('ad
     Route::post('/appointments/{id}/confirm', [AppointmentController::class, 'confirm'])->name('appointments.confirm');
     Route::post('/appointments/{id}/cancel', [AppointmentController::class, 'cancel'])->name('appointments.cancel');
     Route::post('/appointments/{id}/complete', [AppointmentController::class, 'complete'])->name('appointments.complete');
+    // New Restore route
+    Route::post('/appointments/{id}/restore', [AppointmentController::class, 'restore'])->name('appointments.restore');
     
     // Manual Blocking (Admin Only)
     Route::post('/appointments/block-slot', [AppointmentController::class, 'blockSlot'])->name('appointments.block');
