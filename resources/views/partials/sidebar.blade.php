@@ -1,5 +1,6 @@
 <ul class="navbar-nav bg-gradient-primary sidebar sidebar-dark accordion" id="accordionSidebar">
 
+    {{-- BRAND LOGO --}}
     <a class="sidebar-brand d-flex align-items-center justify-content-center" href="/">
         <div class="sidebar-brand-icon rotate-n-15"><i class="fas fa-tooth"></i></div>
         <div class="sidebar-brand-text mx-3">Ponce Miranda</div>
@@ -7,7 +8,10 @@
 
     <hr class="sidebar-divider my-0">
 
-    @if(auth()->user()->role === 'admin' || auth()->user()->role === 'doctor')
+    {{-- ========================================================= --}}
+    {{-- 1. ADMIN MENU (Role: 'admin') --}}
+    {{-- ========================================================= --}}
+    @if(auth()->user()->role === 'admin')
         
         <li class="nav-item {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
             <a class="nav-link" href="{{ route('admin.dashboard') }}">
@@ -18,16 +22,73 @@
         <hr class="sidebar-divider">
         <div class="sidebar-heading">Clinic Operations</div>
 
-        <li class="nav-item"><a class="nav-link" href="{{ route('admin.appointments.index') }}"><i class="fas fa-calendar-check"></i><span>Appointments</span></a></li>
-        <li class="nav-item"><a class="nav-link" href="{{ route('admin.services.index') }}"><i class="fas fa-medkit"></i><span>Services</span></a></li>
-        <li class="nav-item"><a class="nav-link" href="{{ route('admin.schedules.index') }}"><i class="fas fa-clock"></i><span>Calendar</span></a></li>
+        <li class="nav-item {{ request()->routeIs('admin.appointments.*') ? 'active' : '' }}">
+            <a class="nav-link" href="{{ route('admin.appointments.index') }}">
+                <i class="fas fa-calendar-check"></i><span>Appointments</span>
+            </a>
+        </li>
+        <li class="nav-item {{ request()->routeIs('admin.services.*') ? 'active' : '' }}">
+            <a class="nav-link" href="{{ route('admin.services.index') }}">
+                <i class="fas fa-medkit"></i><span>Services</span>
+            </a>
+        </li>
+        <li class="nav-item {{ request()->routeIs('admin.schedules.*') ? 'active' : '' }}">
+            <a class="nav-link" href="{{ route('admin.schedules.index') }}">
+                <i class="fas fa-clock"></i><span>Doctor Schedules</span>
+            </a>
+        </li>
         
         <hr class="sidebar-divider">
-        <div class="sidebar-heading">Admin</div>
-        <li class="nav-item"><a class="nav-link" href="{{ route('admin.patients.index') }}"><i class="fas fa-users"></i><span>Patients</span></a></li>
-        <li class="nav-item"><a class="nav-link" href="{{ route('admin.staff.index') }}"><i class="fas fa-user-md"></i><span>Staff</span></a></li>
-        <li class="nav-item"><a class="nav-link" href="{{ route('admin.reports.index') }}"><i class="fas fa-chart-area"></i><span>Reports</span></a></li>
+        <div class="sidebar-heading">Management</div>
+        
+        <li class="nav-item {{ request()->routeIs('admin.patients.*') ? 'active' : '' }}">
+            <a class="nav-link" href="{{ route('admin.patients.index') }}">
+                <i class="fas fa-users"></i><span>Patients</span>
+            </a>
+        </li>
+        <li class="nav-item {{ request()->routeIs('admin.staff.*') ? 'active' : '' }}">
+            <a class="nav-link" href="{{ route('admin.staff.index') }}">
+                <i class="fas fa-user-md"></i><span>Staff</span>
+            </a>
+        </li>
+        <li class="nav-item {{ request()->routeIs('admin.reports.*') ? 'active' : '' }}">
+            <a class="nav-link" href="{{ route('admin.reports.index') }}">
+                <i class="fas fa-chart-area"></i><span>Reports</span>
+            </a>
+        </li>
 
+    {{-- ========================================================= --}}
+    {{-- 2. DOCTOR MENU (Role: 'doctor') --}}
+    {{-- ========================================================= --}}
+    @elseif(auth()->user()->role === 'doctor')
+
+        <li class="nav-item {{ request()->routeIs('doctor.dashboard') ? 'active' : '' }}">
+            <a class="nav-link" href="{{ route('doctor.dashboard') }}">
+                <i class="fas fa-fw fa-stethoscope"></i>
+                <span>Doctor Workspace</span>
+            </a>
+        </li>
+
+        <hr class="sidebar-divider">
+
+        <li class="nav-item {{ request()->routeIs('doctor.schedule.*') ? 'active' : '' }}">
+            <a class="nav-link" href="{{ route('doctor.schedule.index') }}">
+                <i class="fas fa-fw fa-calendar-alt"></i>
+                <span>My Schedule</span>
+            </a>
+        </li>
+
+    {{-- UPDATED LINK --}}
+    <li class="nav-item {{ request()->routeIs('doctor.consultations') ? 'active' : '' }}">
+        <a class="nav-link" href="{{ route('doctor.consultations') }}">
+            <i class="fas fa-fw fa-file-medical"></i>
+            <span>Consultations</span>
+        </a>
+    </li>
+
+    {{-- ========================================================= --}}
+    {{-- 3. PATIENT MENU (Role: 'patient') --}}
+    {{-- ========================================================= --}}
     @else
 
         <li class="nav-item {{ request()->routeIs('dashboard') ? 'active' : '' }}">
@@ -39,17 +100,17 @@
 
         <hr class="sidebar-divider">
 
-        <li class="nav-item">
+        <li class="nav-item {{ request()->routeIs('patient.booking.*') ? 'active' : '' }}">
             <a class="nav-link" href="{{ route('patient.booking.step1') }}">
                 <i class="fas fa-fw fa-calendar-plus"></i>
                 <span>Book Appointment</span>
             </a>
         </li>
 
-        <li class="nav-item">
+        <li class="nav-item {{ request()->routeIs('patient.history') ? 'active' : '' }}">
             <a class="nav-link" href="{{ route('patient.history') }}">
-                <i class="fas fa-fw fa-history"></i>
-                <span>My History</span>
+                <i class="fas fa-fw fa-list-alt"></i>
+                <span>My Appointments</span>
             </a>
         </li>
 

@@ -1,52 +1,75 @@
-<x-guest-layout>
-    <form method="POST" action="{{ route('register') }}">
-        @csrf
+@extends('layouts.guest')
 
-        <!-- Name -->
-        <div>
-            <x-input-label for="name" :value="__('Name')" />
-            <x-text-input id="name" class="block mt-1 w-full" type="text" name="name" :value="old('name')" required autofocus autocomplete="name" />
-            <x-input-error :messages="$errors->get('name')" class="mt-2" />
+@section('content')
+<div class="container">
+    <div class="row justify-content-center mt-5">
+        <div class="col-md-5">
+            <div class="card shadow-lg border-0 rounded-lg">
+                <div class="card-body p-5">
+                    <div class="text-center mb-4">
+                        <h4 class="text-gray-900 font-weight-bold">Create an Account</h4>
+                        <p class="text-muted small">Join Ponce Miranda Dental Clinic today!</p>
+                    </div>
+
+                    <form method="POST" action="{{ route('register') }}">
+                        @csrf
+
+                        <div class="form-group mb-3">
+                            <label class="small text-muted font-weight-bold">Full Name</label>
+                            <input type="text" name="name" class="form-control rounded-pill px-3 py-2" required placeholder="Juan dela Cruz">
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label class="small text-muted font-weight-bold">Email Address</label>
+                            <input type="email" name="email" class="form-control rounded-pill px-3 py-2" required placeholder="juan@example.com">
+                        </div>
+
+                        <div class="form-group mb-3 position-relative">
+                            <label class="small text-muted font-weight-bold">Password</label>
+                            <input type="password" name="password" id="reg_pass" class="form-control rounded-pill px-3 py-2" required style="padding-right: 40px;">
+                            
+                            <button type="button" onclick="togglePassword('reg_pass')" class="btn btn-link position-absolute" style="top: 32px; right: 10px; text-decoration: none; color: #aaa;">
+                                <i class="fas fa-eye" id="reg_pass-icon"></i>
+                            </button>
+                        </div>
+
+                        <div class="form-group mb-4 position-relative">
+                            <label class="small text-muted font-weight-bold">Confirm Password</label>
+                            <input type="password" name="password_confirmation" id="reg_confirm" class="form-control rounded-pill px-3 py-2" required style="padding-right: 40px;">
+                            
+                            <button type="button" onclick="togglePassword('reg_confirm')" class="btn btn-link position-absolute" style="top: 32px; right: 10px; text-decoration: none; color: #aaa;">
+                                <i class="fas fa-eye" id="reg_confirm-icon"></i>
+                            </button>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary btn-block rounded-pill font-weight-bold shadow-sm py-2">
+                            Register Account
+                        </button>
+                    </form>
+
+                    <hr>
+                    <div class="text-center small">
+                        <a href="{{ route('login') }}" class="text-primary font-weight-bold">Already have an account? Login!</a>
+                    </div>
+                </div>
+            </div>
         </div>
+    </div>
+</div>
 
-        <!-- Email Address -->
-        <div class="mt-4">
-            <x-input-label for="email" :value="__('Email')" />
-            <x-text-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email')" required autocomplete="username" />
-            <x-input-error :messages="$errors->get('email')" class="mt-2" />
-        </div>
-
-        <!-- Password -->
-        <div class="mt-4">
-            <x-input-label for="password" :value="__('Password')" />
-
-            <x-text-input id="password" class="block mt-1 w-full"
-                            type="password"
-                            name="password"
-                            required autocomplete="new-password" />
-
-            <x-input-error :messages="$errors->get('password')" class="mt-2" />
-        </div>
-
-        <!-- Confirm Password -->
-        <div class="mt-4">
-            <x-input-label for="password_confirmation" :value="__('Confirm Password')" />
-
-            <x-text-input id="password_confirmation" class="block mt-1 w-full"
-                            type="password"
-                            name="password_confirmation" required autocomplete="new-password" />
-
-            <x-input-error :messages="$errors->get('password_confirmation')" class="mt-2" />
-        </div>
-
-        <div class="flex items-center justify-end mt-4">
-            <a class="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" href="{{ route('login') }}">
-                {{ __('Already registered?') }}
-            </a>
-
-            <x-primary-button class="ms-4">
-                {{ __('Register') }}
-            </x-primary-button>
-        </div>
-    </form>
-</x-guest-layout>
+<script>
+    function togglePassword(fieldId) {
+        const input = document.getElementById(fieldId);
+        const icon = document.getElementById(fieldId + '-icon');
+        if (input.type === "password") {
+            input.type = "text";
+            icon.classList.remove('fa-eye');
+            icon.classList.add('fa-eye-slash');
+        } else {
+            input.type = "password";
+            icon.classList.remove('fa-eye-slash');
+            icon.classList.add('fa-eye');
+        }
+    }
+</script>
+@endsection

@@ -28,14 +28,19 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
-        // --- ADD THIS CHECK ---
-        if ($request->user()->is_admin) {
-            return redirect()->intended(route('admin.dashboard'));
-        }
-        // ---------------------
+        // --- CUSTOM REDIRECT LOGIC ---
+        $role = $request->user()->role;
 
-        // Default for patients
-        return redirect()->intended(route('home', absolute: false));
+        if ($role === 'admin') {
+            return redirect()->route('admin.dashboard');
+        } 
+        
+        if ($role === 'doctor') {
+            return redirect()->route('doctor.dashboard');
+        }
+
+        // Default for Patients
+        return redirect()->route('dashboard');
     }
 
     /**

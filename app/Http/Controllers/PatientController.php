@@ -8,21 +8,14 @@ use Illuminate\Validation\Rule;
 
 class PatientController extends Controller
 {
-    // 1. INDEX (With Tabs)
     public function index(Request $request)
     {
         $view = $request->get('view', 'active');
         $search = $request->get('search');
 
-        // Base Query
         $query = User::where('role', 'patient');
 
-        // Handle Archive Tab
-        if ($view === 'archived') {
-            $query->onlyTrashed();
-        }
-
-        // Handle Search
+        // Apply Search to all tabs
         if ($search) {
             $query->where(function($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
@@ -30,7 +23,18 @@ class PatientController extends Controller
             });
         }
 
-        $patients = $query->withCount('appointments')->orderBy('name')->paginate(10);
+        if ($view === 'pending') {
+            // Users invited but not yet verified
+            $patients = $query->whereNull('email_verified_at')->orderBy('created_at', 'desc')->paginate(10);
+        } elseif ($view === 'archived') {
+            $patients = $query->onlyTrashed()->paginate(10);
+        } else {
+            // Verified Users
+            $patients = $query->whereNotNull('email_verified_at')
+                ->withCount('appointments')
+                ->orderBy('name')
+                ->paginate(10);
+        }
 
         return view('admin.patients.index', compact('patients', 'search', 'view'));
     }
@@ -77,24 +81,29 @@ class PatientController extends Controller
         return view('admin.patients.create');
     }
 
+    // Find the store() method and replace it
     public function store(Request $request)
     {
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
             'phone' => 'nullable|string',
-            'password' => 'required|min:8'
         ]);
 
-        User::create([
+        // 1. Create User with a RANDOM password (they will reset it anyway)
+        $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'phone' => $request->phone,
-            'password' => \Illuminate\Support\Facades\Hash::make($request->password),
+            'password' => \Illuminate\Support\Facades\Hash::make(\Illuminate\Support\Str::random(16)), 
             'role' => 'patient',
-            'email_verified_at' => now(), // Auto-verify admin created users
         ]);
 
-        return redirect()->route('admin.patients.index')->with('success', 'Patient registered successfully.');
+        // 2. Send the "Set Password" Link (Uses Laravel's built-in Reset Password mechanism)
+        $token = \Illuminate\Support\Facades\Password::createToken($user);
+        $user->sendPasswordResetNotification($token);
+
+        return redirect()->route('admin.patients.index')
+            ->with('success', 'Patient invited! An email has been sent to them to set their password.');
     }
 }

@@ -11,8 +11,18 @@
     <div class="card shadow mb-4">
         <div class="card-header py-3">
             <ul class="nav nav-pills card-header-pills">
-                <li class="nav-item"><a class="nav-link {{ $view == 'active' ? 'active' : '' }}" href="{{ route('admin.patients.index') }}">Active Patients</a></li>
-                <li class="nav-item"><a class="nav-link {{ $view == 'archived' ? 'active bg-secondary text-white' : 'text-secondary' }}" href="{{ route('admin.patients.index', ['view' => 'archived']) }}">Archived</a></li>
+                <li class="nav-item">
+                    <a class="nav-link {{ $view == 'active' ? 'active' : '' }}" href="{{ route('admin.patients.index') }}">Active Patients</a>
+                </li>
+                {{-- NEW PENDING TAB --}}
+                <li class="nav-item">
+                    <a class="nav-link {{ $view == 'pending' ? 'active bg-warning text-dark' : 'text-warning' }}" href="{{ route('admin.patients.index', ['view' => 'pending']) }}">
+                        <i class="fas fa-envelope mr-1"></i> Pending Invite
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {{ $view == 'archived' ? 'active bg-secondary text-white' : 'text-secondary' }}" href="{{ route('admin.patients.index', ['view' => 'archived']) }}">Archived</a>
+                </li>
             </ul>
         </div>
         <div class="card-body">

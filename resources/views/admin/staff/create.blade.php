@@ -23,7 +23,7 @@
                             <label class="font-weight-bold">Role</label>
                             <select name="role" class="form-control" required>
                                 <option value="doctor">Doctor</option>
-                                <option value="admin">Admin</option>
+                                <option value="admin">Nurse</option>
                             </select>
                         </div>
                         <div class="form-group col-md-6">

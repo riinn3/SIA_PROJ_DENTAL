@@ -80,11 +80,6 @@
 
         <div class="col-lg-7">
             <div class="card shadow mb-4">
-                @if($history->count() > 0)
-                <div class="card-footer bg-white text-center">
-                    <a href="{{ route('patient.history') }}" class="small font-weight-bold">View Full History &rarr;</a>
-                </div>
-                @endif
                 <div class="card-body p-0">
                     <div class="table-responsive">
                         <table class="table table-striped mb-0">
@@ -121,9 +116,9 @@
                         </table>
                     </div>
                     @if($history->count() > 0)
-                    <div class="card-footer bg-white text-center">
-                        <a href="#" class="small font-weight-bold">View Full History &rarr;</a>
-                    </div>
+                        <div class="card-footer bg-white text-center">
+                            <a href="{{ route('patient.history') }}" class="small font-weight-bold">View Full History &rarr;</a>
+                        </div>
                     @endif
                 </div>
             </div>

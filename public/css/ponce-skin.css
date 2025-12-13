@@ -1,41 +1,137 @@
-/* Override Sidebar Background */
+/* --- PONCE MIRANDA REFINED SKIN (Compact & Elegant) --- */
+
+:root {
+    --primary: #D1396C;
+    --primary-dark: #b02a55;
+    --primary-soft: #fcebf1;
+    --text-dark: #444444;
+    --text-muted: #6c757d;
+}
+
+body {
+    font-family: 'Nunito', sans-serif; /* Cleaner font */
+    background-color: #f8f9fc;
+    color: var(--text-dark);
+    font-size: 0.9rem; /* Slightly smaller base text */
+}
+
+/* 1. SIDEBAR & GRADIENTS */
 .bg-gradient-primary {
-    background-color: #D1396C;
+    background-color: var(--primary);
     background-image: linear-gradient(180deg, #D1396C 10%, #C03362 100%);
     background-size: cover;
 }
 
-/* Override Buttons */
+/* 2. COMPACT CARDS */
+.card {
+    border: none !important;
+    border-radius: 15px !important; /* Slightly tighter curves */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important; /* Lighter shadow */
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(209, 57, 108, 0.1) !important;
+}
+
+.card-header {
+    background-color: white !important;
+    border-bottom: 1px solid #f0f2f5 !important;
+    border-radius: 15px 15px 0 0 !important;
+    padding: 1rem 1.25rem; /* Reduced padding */
+    font-weight: 700;
+    color: var(--primary);
+    font-size: 1rem;
+}
+
+.card-body {
+    padding: 1.25rem; /* Reduced from default */
+}
+
+/* 3. ELEGANT BUTTONS */
+.btn {
+    border-radius: 50px !important;
+    padding: 0.375rem 1.2rem; /* Compact padding */
+    font-size: 0.9rem;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.btn-lg {
+    padding: 0.5rem 1.5rem;
+    font-size: 1rem;
+}
+
 .btn-primary {
-    background-color: #D1396C;
-    border-color: #D1396C;
+    background-color: var(--primary);
+    border-color: var(--primary);
 }
 
 .btn-primary:hover {
-    background-color: #b02a55;
-    border-color: #b02a55;
+    background-color: var(--primary-dark);
+    border-color: var(--primary-dark);
+    box-shadow: 0 4px 8px rgba(209, 57, 108, 0.3);
 }
 
-/* Override Text & Links */
-.text-primary {
-    color: #D1396C !important;
+.btn-light {
+    background: white;
+    border: 1px solid #e3e6f0;
+    color: var(--text-dark);
 }
 
-a {
-    color: #D1396C;
+/* 4. REFINED INPUTS */
+.form-control, .custom-select {
+    border-radius: 10px;
+    border: 1px solid #d1d3e2;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.9rem;
+    height: auto;
 }
 
-a:hover {
-    color: #b02a55;
+.form-control:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 0.2rem rgba(209, 57, 108, 0.15); /* Softer glow */
 }
 
-/* Override Dashboard Cards (Left Border) */
-.border-left-primary {
-    border-left: 0.25rem solid #D1396C !important;
+/* 5. TYPOGRAPHY FIXES */
+h1, .h1 { font-size: 1.75rem; font-weight: 700; }
+h2, .h2 { font-size: 1.5rem; font-weight: 700; }
+h3, .h3 { font-size: 1.25rem; font-weight: 700; }
+h4, .h4 { font-size: 1.1rem; font-weight: 700; }
+h5, .h5 { font-size: 1rem; font-weight: 700; }
+
+.text-primary { color: var(--primary) !important; }
+a { color: var(--primary); text-decoration: none; }
+a:hover { color: var(--primary-dark); text-decoration: none; }
+
+/* 6. HERO SECTION (Specific Fix) */
+.hero-curve {
+    border-bottom-left-radius: 30px;
+    border-bottom-right-radius: 30px;
+    background: linear-gradient(135deg, #D1396C 0%, #9e2a51 100%);
+    padding-top: 3rem !important;
+    padding-bottom: 4rem !important; /* Reduced height */
 }
 
-/* Pagination Active State */
-.page-item.active .page-link {
-    background-color: #D1396C;
-    border-color: #D1396C;
+.display-4 {
+    font-size: 2.5rem; /* Much smaller than default Bootstrap */
+}
+
+.lead {
+    font-size: 1.1rem;
+    font-weight: 400;
+}
+
+/* 7. UTILITY OVERRIDES */
+.border-left-primary { border-left: 4px solid var(--primary) !important; }
+.border-left-success { border-left: 4px solid #1cc88a !important; }
+.border-left-info { border-left: 4px solid #36b9cc !important; }
+
+/* Icon Circles in Cards */
+.icon-circle {
+    width: 60px !important; 
+    height: 60px !important; 
+    font-size: 1.5rem; /* Smaller icons */
 }

@@ -14,17 +14,28 @@ use App\Http\Controllers\PatientHistoryController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\Api\CalendarController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\PublicController; // <--- MAKE SURE THIS IS IMPORTED
+use App\Http\Controllers\Doctor\DoctorScheduleController;
 
-// --- PUBLIC ROUTES ---
-Route::get('/', function () {
-    return redirect()->route('login');
-});
+/*
+|--------------------------------------------------------------------------
+| GUEST / PUBLIC ROUTES
+|--------------------------------------------------------------------------
+*/
+
+// 1. THE HOME PAGE (This fixes the issue)
+Route::get('/', [PublicController::class, 'index'])->name('home');
+
+// 2. OTHER PUBLIC PAGES
+Route::get('/services', [PublicController::class, 'services'])->name('services.public.index');
+Route::get('/doctors', [PublicController::class, 'doctors'])->name('doctors.public.index');
+Route::get('/doctors/{id}', [PublicController::class, 'doctorProfile'])->name('doctors.public.show');
 
 // --- SMART REDIRECT (Post-Login) ---
 Route::get('/home', LoginRedirectController::class)->middleware(['auth'])->name('home');
 
 // --- SHARED ROUTES (Admins, Doctors, Patients) ---
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', 'verified'])->group(function () {
     // Profile Management
     // These names MUST match what is in your javascript fetch() calls
     Route::get('/api/calendar/events', [CalendarController::class, 'getEvents'])->name('api.calendar');
@@ -53,8 +64,22 @@ Route::post('/my-appointments/{id}/cancel', [App\Http\Controllers\PatientHistory
 
 // --- DOCTOR ROUTES ---
 Route::middleware(['auth', 'role:doctor'])->prefix('doctor')->name('doctor.')->group(function () {
+    
+    // 1. Dashboard
     Route::get('/dashboard', [App\Http\Controllers\Doctor\DoctorDashboardController::class, 'index'])->name('dashboard');
+    
+    // 2. Diagnosis Update
     Route::post('/appointment/{id}/diagnosis', [App\Http\Controllers\Doctor\DoctorDashboardController::class, 'updateDiagnosis'])->name('diagnosis.update');
+
+    // 3. SCHEDULE MANAGEMENT (This is the missing part causing your error)
+    Route::get('/schedule', [App\Http\Controllers\Doctor\DoctorScheduleController::class, 'index'])->name('schedule.index');
+    Route::post('/schedule/update-date', [App\Http\Controllers\Doctor\DoctorScheduleController::class, 'updateDateSchedule'])->name('schedule.updateDate');
+
+    // REPLACES "My Patients" with "Consultations"
+    Route::get('consultations', [App\Http\Controllers\Doctor\DoctorDashboardController::class, 'recentConsultations'])->name('consultations');
+    
+    // Ensure the update route is correct (PUT method)
+    Route::put('appointment/{appointment}/diagnosis', [App\Http\Controllers\Doctor\DoctorDashboardController::class, 'updateDiagnosis'])->name('appointment.updateDiagnosis');
 });
 
 // --- ADMIN ROUTES (Role: admin) ---

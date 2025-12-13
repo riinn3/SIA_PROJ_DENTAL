@@ -9,16 +9,17 @@
         <li class="nav-item dropdown no-arrow">
             <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-toggle="dropdown">
                 <span class="mr-2 d-none d-lg-inline text-gray-600 small">
-                    {{ Auth::user()->name ?? 'Admin' }}
+                    {{ Auth::user()->name ?? 'User' }}
                 </span>
                 <img class="img-profile rounded-circle" 
-                    src="https://ui-avatars.com/api/?name={{ urlencode(Auth::user()->name) }}&background=4e73df&color=ffffff">
+                    src="https://ui-avatars.com/api/?name={{ urlencode(Auth::user()->name) }}&background=D1396C&color=ffffff">
             </a>
             
             <div class="dropdown-menu dropdown-menu-right shadow animated--grow-in">
-                <a class="dropdown-item" href="#">
+                {{-- FIX: Link to the Profile Route --}}
+                <a class="dropdown-item" href="{{ route('profile.edit') }}">
                     <i class="fas fa-user fa-sm fa-fw mr-2 text-gray-400"></i>
-                    Profile
+                    My Profile
                 </a>
                 <div class="dropdown-divider"></div>
                 

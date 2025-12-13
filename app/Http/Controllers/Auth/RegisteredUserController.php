@@ -31,24 +31,22 @@ class RegisteredUserController extends Controller
     {
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:'.User::class],
-            // STRICT PH PHONE VALIDATION
-            'phone' => ['required', 'regex:/^(09|\+639)\d{9}$/'], 
-            'password' => ['required', 'confirmed', \Illuminate\Validation\Rules\Password::defaults()],
-        ], [
-            'phone.regex' => 'Please enter a valid Philippine mobile number (e.g., 0917xxxxxxx).'
+            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
+            'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
+            'role' => 'patient', // Force role to patient for self-registration
         ]);
 
         event(new Registered($user));
 
         Auth::login($user);
 
-        return redirect(route('dashboard', absolute: false));
+        // --- FORCE PATIENTS TO DASHBOARD ---
+        return redirect()->route('dashboard');
     }
 }

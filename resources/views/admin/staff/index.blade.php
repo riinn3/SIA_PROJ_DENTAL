@@ -16,6 +16,12 @@
             <li class="nav-item">
                 <a class="nav-link {{ $view == 'active' ? 'active' : '' }}" href="{{ route('admin.staff.index') }}">Active Staff</a>
             </li>
+            {{-- NEW PENDING TAB --}}
+            <li class="nav-item">
+                <a class="nav-link {{ $view == 'pending' ? 'active bg-warning text-dark' : 'text-warning' }}" href="{{ route('admin.staff.index', ['view' => 'pending']) }}">
+                    <i class="fas fa-envelope mr-1"></i> Pending Invite
+                </a>
+            </li>
             <li class="nav-item">
                 <a class="nav-link {{ $view == 'archived' ? 'active bg-danger text-white' : 'text-danger' }}" href="{{ route('admin.staff.index', ['view' => 'archived']) }}">
                     <i class="fas fa-user-slash mr-1"></i> Deactivated

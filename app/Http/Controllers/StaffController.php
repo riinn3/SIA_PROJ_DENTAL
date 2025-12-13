@@ -13,14 +13,19 @@ class StaffController extends Controller
 {
     public function index(Request $request)
     {
-        $view = $request->get('view', 'active');
+        $view = $request->get('view', 'active'); // Default tab
 
-        if ($view === 'archived') {
-            // UPDATED: paginate(10)
+        // Common query part
+        $query = User::whereIn('role', ['admin', 'doctor']);
+
+        if ($view === 'pending') {
+            // Pending = Users who haven't verified email yet
+            $staff = $query->whereNull('email_verified_at')->orderBy('created_at', 'desc')->paginate(10);
+        } elseif ($view === 'archived') {
             $staff = User::onlyTrashed()->whereIn('role', ['admin', 'doctor'])->paginate(10);
         } else {
-            // UPDATED: paginate(10)
-            $staff = User::whereIn('role', ['admin', 'doctor'])->orderBy('created_at', 'desc')->paginate(10);
+            // Active = Verified users
+            $staff = $query->whereNotNull('email_verified_at')->orderBy('created_at', 'desc')->paginate(10);
         }
                      
         return view('admin.staff.index', compact('staff', 'view'));
@@ -32,7 +37,7 @@ class StaffController extends Controller
         return view('admin.staff.create');
     }
 
-    // 3. STORE (Simple Create for now)
+    // Find the store() method and replace it
     public function store(Request $request)
     {
         $request->validate([
@@ -42,18 +47,21 @@ class StaffController extends Controller
             'phone' => 'nullable|string'
         ]);
 
-        // Create user with a dummy password (they can reset it later)
-        User::create([
+        // 1. Create Staff with RANDOM password
+        $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'role' => $request->role,
             'phone' => $request->phone,
-            'password' => Hash::make('password'), // Default password
-            'email_verified_at' => now() 
+            'password' => \Illuminate\Support\Facades\Hash::make(\Illuminate\Support\Str::random(16)),
         ]);
 
+        // 2. Send Invitation / Set Password Link
+        $token = \Illuminate\Support\Facades\Password::createToken($user);
+        $user->sendPasswordResetNotification($token);
+
         return redirect()->route('admin.staff.index')
-            ->with('success', "New {$request->role} added successfully.");
+            ->with('success', "Invitation sent to new {$request->role}.");
     }
 
     // ARCHIVE (Soft Delete)

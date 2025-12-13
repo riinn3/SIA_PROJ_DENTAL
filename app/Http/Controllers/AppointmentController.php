@@ -11,25 +11,33 @@ use Carbon\Carbon;
 
 class AppointmentController extends Controller
 {
-    // --- 1. LIST APPOINTMENTS (Admin Transaction View) ---
     public function index(Request $request)
     {
-        // A. Filters
-        $status = $request->get('status', 'pending'); // Default tab
+        // 1. Filter Parameters
+        $status = $request->get('status', 'pending');
         $search = $request->get('search');
         $startDate = $request->get('start_date');
         $endDate = $request->get('end_date');
 
-        // B. Base Query (Eager load relationships for performance)
+        // 2. Sorting Parameters (New Logic)
+        // Default sort: Appointment Date, Descending
+        $sort = $request->get('sort', 'appointment_date'); 
+        $direction = $request->get('direction', 'desc');
+
+        // Whitelist allowed sort columns to prevent errors/injection
+        $allowedSorts = ['appointment_date', 'appointment_time', 'created_at', 'id'];
+        if (!in_array($sort, $allowedSorts)) {
+            $sort = 'appointment_date';
+        }
+
+        // 3. Build Query
         $query = Appointment::with(['patient', 'doctor', 'service'])
             ->where('status', $status);
 
-        // C. Date Filter
         if ($startDate && $endDate) {
             $query->whereBetween('appointment_date', [$startDate, $endDate]);
         }
 
-        // D. Search Logic (Find by Patient Name or Doctor Name)
         if ($search) {
             $query->where(function($q) use ($search) {
                 $q->whereHas('patient', function($sub) use ($search) {
@@ -41,19 +49,18 @@ class AppointmentController extends Controller
             });
         }
 
-        // E. Sorting
-        // Pending/Confirmed: Show nearest upcoming first (Ascending)
-        // Completed/Cancelled: Show most recent past first (Descending)
-        if (in_array($status, ['pending', 'confirmed'])) {
-            $query->orderBy('appointment_date', 'asc')->orderBy('appointment_time', 'asc');
-        } else {
-            $query->orderBy('appointment_date', 'desc')->orderBy('appointment_time', 'desc');
+        // 4. Apply Sorting
+        $query->orderBy($sort, $direction);
+        
+        // Secondary sort for cleaner list (time)
+        if ($sort == 'appointment_date') {
+            $query->orderBy('appointment_time', $direction);
         }
 
-        // F. Pagination
         $appointments = $query->paginate(10)->withQueryString();
 
-        return view('admin.appointments.index', compact('appointments', 'status', 'search', 'startDate', 'endDate'));
+        // Pass sort/direction variables to view so the links work
+        return view('admin.appointments.index', compact('appointments', 'status', 'search', 'startDate', 'endDate', 'sort', 'direction'));
     }
 
     // --- 2. SHOW WALK-IN FORM ---
