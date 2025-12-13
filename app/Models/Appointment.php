@@ -18,6 +18,8 @@ class Appointment extends Model
         'appointment_time',
         'duration_minutes',
         'status',
+        'diagnosis', // Added
+        'prescription', // Added
         'cancellation_reason',
         'cancelled_by',
         'cancelled_at'

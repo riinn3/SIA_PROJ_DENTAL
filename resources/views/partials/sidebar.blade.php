@@ -116,6 +116,26 @@
 
     @endif
 
+    <hr class="sidebar-divider">
+    <div class="sidebar-heading">Account</div>
+
+    <li class="nav-item {{ request()->routeIs('profile.edit') ? 'active' : '' }}">
+        <a class="nav-link" href="{{ route('profile.edit') }}">
+            <i class="fas fa-fw fa-user"></i>
+            <span>Profile</span>
+        </a>
+    </li>
+
+    <li class="nav-item">
+        <form method="POST" action="{{ route('logout') }}" id="sidebar-logout-form" class="d-none">
+            @csrf
+        </form>
+        <a class="nav-link" href="#" onclick="event.preventDefault(); document.getElementById('sidebar-logout-form').submit();">
+            <i class="fas fa-fw fa-sign-out-alt"></i>
+            <span>Log Out</span>
+        </a>
+    </li>
+
     <hr class="sidebar-divider d-none d-md-block">
     <div class="text-center d-none d-md-inline">
         <button class="rounded-circle border-0" id="sidebarToggle"></button>

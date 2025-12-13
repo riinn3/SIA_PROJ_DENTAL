@@ -27,13 +27,7 @@
                 </div>
 
             </div>
-            <footer class="sticky-footer bg-white">
-                <div class="container my-auto">
-                    <div class="copyright text-center my-auto">
-                        <span>Copyright &copy; Ponce Miranda Dental 2025</span>
-                    </div>
-                </div>
-            </footer>
+            {{-- Footer Removed --}}
 
         </div>
     </div>
@@ -42,6 +36,33 @@
     <script src="{{ asset('vendor/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
     <script src="{{ asset('vendor/jquery-easing/jquery.easing.min.js') }}"></script>
     <script src="{{ asset('js/sb-admin-2.min.js') }}"></script>
+
+    {{-- SIDEBAR STATE PERSISTENCE --}}
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const sidebar = document.querySelector('.sidebar');
+            const body = document.querySelector('body');
+            
+            // 1. Restore State on Load
+            if (localStorage.getItem('sidebar-toggled') === 'true') {
+                body.classList.add('sidebar-toggled');
+                if(sidebar) sidebar.classList.add('toggled');
+            }
+
+            // 2. Listen for Toggles
+            const toggles = document.querySelectorAll('#sidebarToggle, #sidebarToggleTop');
+            
+            toggles.forEach(toggle => {
+                toggle.addEventListener('click', function() {
+                    // Wait for the transition to finish/class to be toggled by the theme JS
+                    setTimeout(() => {
+                        const isToggled = body.classList.contains('sidebar-toggled') || sidebar.classList.contains('toggled');
+                        localStorage.setItem('sidebar-toggled', isToggled);
+                    }, 250); 
+                });
+            });
+        });
+    </script>
 
     @stack('scripts')
 

@@ -11,18 +11,12 @@
             <p class="lead mb-4 opacity-90" style="font-size: 1.1rem;">Experience elegant care for your perfect smile.</p>
             
             <div class="d-flex justify-content-center gap-3">
-                @auth
-                    <a href="{{ route('dashboard') }}" class="btn btn-light text-primary font-weight-bold shadow-sm px-4 rounded-pill">
-                        Dashboard
-                    </a>
-                @else
-                    <a href="{{ route('login') }}" class="btn btn-light text-primary font-weight-bold shadow-sm px-4 mr-2 rounded-pill">
-                        Log In
-                    </a>
-                    <a href="{{ route('register') }}" class="btn btn-outline-light font-weight-bold px-4 rounded-pill">
-                        New Patient
-                    </a>
-                @endauth
+                <a href="{{ route('login') }}" class="btn btn-light text-primary font-weight-bold shadow-sm px-4 mr-2 rounded-pill">
+                    Log In
+                </a>
+                <a href="{{ route('register') }}" class="btn btn-outline-light font-weight-bold px-4 rounded-pill">
+                    New Patient
+                </a>
             </div>
         </div>
     </div>
@@ -69,13 +63,66 @@
                         </div>
                         <h5 class="font-weight-bold text-dark">Easy Booking</h5>
                         <p class="text-muted small mb-3">Schedule your visit in clicks.</p>
-                        <a href="{{ route('register') }}" class="btn btn-sm btn-outline-info rounded-pill px-4">Book Now</a>
+                        <a href="{{ route('patient.booking.step1') }}" class="btn btn-sm btn-outline-info rounded-pill px-4">Book Now</a>
                     </div>
                 </div>
             </div>
 
         </div>
     </div>
+
+    {{-- 3. WHY CHOOSE US --}}
+    <div class="bg-white py-5">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-6 mb-4 mb-lg-0">
+                    <h2 class="font-weight-bold text-gray-800 mb-4">Why Choose Ponce Miranda?</h2>
+                    <p class="text-muted mb-4">
+                        We combine advanced dental technology with a compassionate approach to ensure your visit is comfortable and effective.
+                    </p>
+                    
+                    <div class="d-flex align-items-start mb-3">
+                        <div class="icon-circle bg-light text-primary rounded-circle d-flex align-items-center justify-content-center mr-3" style="width: 40px; height: 40px; flex-shrink: 0;">
+                            <i class="fas fa-check"></i>
+                        </div>
+                        <div>
+                            <h5 class="font-weight-bold text-dark h6">State-of-the-art Facility</h5>
+                            <p class="small text-muted">Equipped with the latest diagnostic and treatment tools.</p>
+                        </div>
+                    </div>
+
+                    <div class="d-flex align-items-start mb-3">
+                        <div class="icon-circle bg-light text-primary rounded-circle d-flex align-items-center justify-content-center mr-3" style="width: 40px; height: 40px; flex-shrink: 0;">
+                            <i class="fas fa-heart"></i>
+                        </div>
+                        <div>
+                            <h5 class="font-weight-bold text-dark h6">Personalized Care Plans</h5>
+                            <p class="small text-muted">Treatments designed specifically for your unique smile.</p>
+                        </div>
+                    </div>
+
+                    <div class="d-flex align-items-start">
+                        <div class="icon-circle bg-light text-primary rounded-circle d-flex align-items-center justify-content-center mr-3" style="width: 40px; height: 40px; flex-shrink: 0;">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <div>
+                            <h5 class="font-weight-bold text-dark h6">Flexible Scheduling</h5>
+                            <p class="small text-muted">Weekend and evening appointments available for your convenience.</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-lg-6 text-center">
+                    {{-- Placeholder for a Clinic Image --}}
+                    <div class="rounded-lg shadow-lg overflow-hidden position-relative bg-light" style="height: 300px; display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-clinic-medical fa-5x text-gray-300"></i>
+                        <div class="position-absolute w-100 h-100" style="background: rgba(0,0,0,0.03);"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </div>
 
 <style>

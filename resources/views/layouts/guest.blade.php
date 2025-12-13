@@ -36,12 +36,8 @@
                     <li class="nav-item"><a class="nav-link" href="{{ route('doctors.public.index') }}">Doctors</a></li>
                 </ul>
                 <div class="form-inline">
-                    @auth
-                        <a href="{{ route('dashboard') }}" class="btn btn-primary btn-sm px-4 shadow-sm">Dashboard</a>
-                    @else
-                        <a href="{{ route('login') }}" class="text-dark font-weight-bold mr-3" style="text-decoration:none">Log In</a>
-                        <a href="{{ route('register') }}" class="btn btn-primary btn-sm px-4 shadow-sm">Register</a>
-                    @endauth
+                    <a href="{{ route('login') }}" class="text-dark font-weight-bold mr-3" style="text-decoration:none">Log In</a>
+                    <a href="{{ route('register') }}" class="btn btn-primary btn-sm px-4 shadow-sm">Register</a>
                 </div>
             </div>
         </div>
@@ -54,10 +50,45 @@
         @yield('content')
     </main>
 
-    {{-- 3. FOOTER --}}
-    <footer class="bg-white py-4 mt-5 border-top">
-        <div class="container text-center text-muted small">
-            &copy; {{ date('Y') }} Ponce Miranda Dental Clinic. All Rights Reserved.
+    {{-- 3. MODERN FOOTER --}}
+    <footer class="bg-dark text-white pt-5 pb-4 mt-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-4 mb-4">
+                    <h5 class="text-uppercase font-weight-bold mb-3" style="letter-spacing: 1px; color: #D1396C;">Ponce Miranda</h5>
+                    <p class="small text-white-50">
+                        Providing top-tier dental care with a gentle touch. Your smile is our priority.
+                    </p>
+                    <div class="mt-3">
+                        <a href="#" class="text-white-50 mr-3"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#" class="text-white-50 mr-3"><i class="fab fa-twitter"></i></a>
+                        <a href="#" class="text-white-50"><i class="fab fa-instagram"></i></a>
+                    </div>
+                </div>
+
+                <div class="col-md-4 mb-4">
+                    <h6 class="text-uppercase font-weight-bold mb-3">Quick Links</h6>
+                    <ul class="list-unstyled small">
+                        <li class="mb-2"><a href="{{ route('home') }}" class="text-white-50">Home</a></li>
+                        <li class="mb-2"><a href="{{ route('services.public.index') }}" class="text-white-50">Services</a></li>
+                        <li class="mb-2"><a href="{{ route('doctors.public.index') }}" class="text-white-50">Our Doctors</a></li>
+                        <li><a href="{{ route('login') }}" class="text-white-50">Portal Login</a></li>
+                    </ul>
+                </div>
+
+                <div class="col-md-4 mb-4">
+                    <h6 class="text-uppercase font-weight-bold mb-3">Contact Us</h6>
+                    <ul class="list-unstyled small text-white-50">
+                        <li class="mb-2"><i class="fas fa-map-marker-alt mr-2"></i> 123 Main St, City, Country</li>
+                        <li class="mb-2"><i class="fas fa-phone mr-2"></i> +1 (234) 567-890</li>
+                        <li><i class="fas fa-envelope mr-2"></i> info@poncemiranda.com</li>
+                    </ul>
+                </div>
+            </div>
+            <hr class="border-secondary my-4">
+            <div class="text-center small text-white-50">
+                &copy; {{ date('Y') }} Ponce Miranda Dental Clinic. All Rights Reserved.
+            </div>
         </div>
     </footer>
 

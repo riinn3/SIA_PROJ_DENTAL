@@ -24,7 +24,7 @@
                     <h5 class="font-weight-bold text-dark mb-1">Dr. {{ $doc->name }}</h5>
                     <p class="text-muted small mb-3">{{ $doc->specialty ?? 'General Dentist' }}</p>
                     
-                    <a href="{{ route('login') }}" class="btn btn-outline-primary btn-sm btn-block">
+                    <a href="{{ route('patient.booking.step1') }}" class="btn btn-outline-primary btn-sm btn-block">
                         Book Appointment
                     </a>
                 </div>

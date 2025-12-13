@@ -2,98 +2,104 @@
 
 @section('content')
 <div class="container-fluid">
-    <h1 class="h3 mb-4 text-gray-800">Account Settings</h1>
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            
+            {{-- PAGE HEADER --}}
+            <div class="mb-4">
+                <h1 class="h3 text-gray-800 font-weight-bold">My Profile</h1>
+                <p class="text-muted">Manage your account settings and security preferences.</p>
+            </div>
 
-    <div class="row">
-        
-        {{-- 1. UPDATE INFO CARD --}}
-        <div class="col-lg-6">
-            <div class="card shadow mb-4">
-                <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">Profile Information</h6>
+            {{-- SUCCESS MESSAGE --}}
+            @if (session('status'))
+                <div class="alert alert-success alert-dismissible fade show shadow-sm border-left-success" role="alert">
+                    <i class="fas fa-check-circle mr-2"></i>
+                    @if(session('status') === 'profile-updated') Profile information updated. @endif
+                    @if(session('status') === 'password-updated') Password updated successfully. @endif
+                    <button type="button" class="close" data-dismiss="alert">&times;</button>
                 </div>
-                <div class="card-body">
+            @endif
+
+            {{-- MAIN CARD --}}
+            <div class="card shadow-sm border-0 mb-5">
+                <div class="card-body p-5">
+                    
+                    {{-- 1. PROFILE INFO --}}
+                    <h5 class="font-weight-bold text-dark mb-4 pb-2 border-bottom">
+                        <i class="fas fa-user-circle text-primary mr-2"></i> Personal Information
+                    </h5>
+                    
                     <form method="post" action="{{ route('profile.update') }}">
                         @csrf
                         @method('patch')
-
-                        <div class="form-group">
-                            <label class="small mb-1 font-weight-bold">Full Name</label>
-                            <input type="text" name="name" class="form-control" value="{{ old('name', $user->name) }}" required>
-                            @error('name') <small class="text-danger">{{ $message }}</small> @enderror
+                        
+                        <div class="form-row">
+                            <div class="form-group col-md-6">
+                                <label class="small font-weight-bold text-gray-600">Full Name</label>
+                                <input type="text" name="name" class="form-control rounded-pill" value="{{ old('name', $user->name) }}" required>
+                                @error('name') <small class="text-danger pl-3">{{ $message }}</small> @enderror
+                            </div>
+                            <div class="form-group col-md-6">
+                                <label class="small font-weight-bold text-gray-600">Email Address</label>
+                                <input type="email" name="email" class="form-control rounded-pill" value="{{ old('email', $user->email) }}" required>
+                                @error('email') <small class="text-danger pl-3">{{ $message }}</small> @enderror
+                            </div>
+                        </div>
+                        <div class="form-row">
+                             <div class="form-group col-md-6">
+                                <label class="small font-weight-bold text-gray-600">Phone Number</label>
+                                <input type="text" name="phone" class="form-control rounded-pill" value="{{ old('phone', $user->phone) }}">
+                            </div>
                         </div>
 
-                        <div class="form-group">
-                            <label class="small mb-1 font-weight-bold">Email Address</label>
-                            <input type="email" name="email" class="form-control" value="{{ old('email', $user->email) }}" required>
-                            @error('email') <small class="text-danger">{{ $message }}</small> @enderror
+                        <div class="text-right mt-3">
+                            <button type="submit" class="btn btn-primary btn-sm px-4 rounded-pill font-weight-bold shadow-sm">
+                                Save Profile Changes
+                            </button>
                         </div>
-
-                        {{-- Optional: Add Phone if your DB has it --}}
-                        <div class="form-group">
-                            <label class="small mb-1 font-weight-bold">Phone Number</label>
-                            <input type="text" name="phone" class="form-control" value="{{ old('phone', $user->phone) }}">
-                        </div>
-
-                        <button type="submit" class="btn btn-primary btn-sm px-4">
-                            Save Changes
-                        </button>
-
-                        @if (session('status') === 'profile-updated')
-                            <span class="small text-success ml-3 fade-out"><i class="fas fa-check"></i> Saved!</span>
-                        @endif
                     </form>
-                </div>
-            </div>
-        </div>
 
-        {{-- 2. UPDATE PASSWORD CARD --}}
-        <div class="col-lg-6">
-            <div class="card shadow mb-4 border-left-warning">
-                <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-warning">Security & Password</h6>
-                </div>
-                <div class="card-body">
+                    <div class="py-4"></div>
+
+                    {{-- 2. SECURITY --}}
+                    <h5 class="font-weight-bold text-dark mb-4 pb-2 border-bottom">
+                        <i class="fas fa-lock text-primary mr-2"></i> Security
+                    </h5>
+
                     <form method="post" action="{{ route('password.update') }}">
                         @csrf
                         @method('put')
 
                         <div class="form-group">
-                            <label class="small mb-1 font-weight-bold">Current Password</label>
-                            <input type="password" name="current_password" class="form-control" required>
-                            @error('current_password', 'updatePassword') <small class="text-danger">{{ $message }}</small> @enderror
+                            <label class="small font-weight-bold text-gray-600">Current Password</label>
+                            <input type="password" name="current_password" class="form-control rounded-pill w-50" required>
+                            @error('current_password', 'updatePassword') <small class="text-danger pl-3">{{ $message }}</small> @enderror
                         </div>
 
-                        <div class="form-group">
-                            <label class="small mb-1 font-weight-bold">New Password</label>
-                            <input type="password" name="password" class="form-control" required>
-                            @error('password', 'updatePassword') <small class="text-danger">{{ $message }}</small> @enderror
+                        <div class="form-row">
+                            <div class="form-group col-md-6">
+                                <label class="small font-weight-bold text-gray-600">New Password</label>
+                                <input type="password" name="password" class="form-control rounded-pill" required>
+                                @error('password', 'updatePassword') <small class="text-danger pl-3">{{ $message }}</small> @enderror
+                            </div>
+                            <div class="form-group col-md-6">
+                                <label class="small font-weight-bold text-gray-600">Confirm Password</label>
+                                <input type="password" name="password_confirmation" class="form-control rounded-pill" required>
+                            </div>
                         </div>
 
-                        <div class="form-group">
-                            <label class="small mb-1 font-weight-bold">Confirm Password</label>
-                            <input type="password" name="password_confirmation" class="form-control" required>
+                        <div class="text-right mt-3">
+                            <button type="submit" class="btn btn-secondary btn-sm px-4 rounded-pill font-weight-bold shadow-sm">
+                                Update Password
+                            </button>
                         </div>
-
-                        <button type="submit" class="btn btn-warning btn-sm px-4 text-white">
-                            Update Password
-                        </button>
-
-                        @if (session('status') === 'password-updated')
-                            <span class="small text-success ml-3 fade-out"><i class="fas fa-check"></i> Updated!</span>
-                        @endif
                     </form>
+
                 </div>
             </div>
-        </div>
 
+        </div>
     </div>
 </div>
-
-<script>
-    // Simple fade out for success messages
-    setTimeout(function() {
-        $('.fade-out').fadeOut('slow');
-    }, 3000);
-</script>
 @endsection

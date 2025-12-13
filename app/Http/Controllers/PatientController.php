@@ -88,22 +88,23 @@ class PatientController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
             'phone' => 'nullable|string',
+            'password' => 'required|string|min:8',
         ]);
 
-        // 1. Create User with a RANDOM password (they will reset it anyway)
+        // 1. Create User with the provided password
+        // Do NOT auto-verify. Let them verify via email.
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'phone' => $request->phone,
-            'password' => \Illuminate\Support\Facades\Hash::make(\Illuminate\Support\Str::random(16)), 
+            'password' => \Illuminate\Support\Facades\Hash::make($request->password), 
             'role' => 'patient',
         ]);
 
-        // 2. Send the "Set Password" Link (Uses Laravel's built-in Reset Password mechanism)
-        $token = \Illuminate\Support\Facades\Password::createToken($user);
-        $user->sendPasswordResetNotification($token);
+        // 2. Trigger Email Verification
+        event(new \Illuminate\Auth\Events\Registered($user));
 
         return redirect()->route('admin.patients.index')
-            ->with('success', 'Patient invited! An email has been sent to them to set their password.');
+            ->with('success', 'Patient registered. A verification email has been sent to them.');
     }
 }

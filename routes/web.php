@@ -48,7 +48,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 });
 
 // --- PATIENT ROUTES (Role: patient) ---
-Route::middleware(['auth', 'role:patient'])->group(function () {
+Route::middleware(['auth', 'role:patient', 'verified'])->group(function () {
     // 1. Dashboard (The Home Screen)
     Route::get('/dashboard', [PatientHomeController::class, 'index'])->name('dashboard');
 
@@ -63,7 +63,7 @@ Route::post('/my-appointments/{id}/cancel', [App\Http\Controllers\PatientHistory
 });
 
 // --- DOCTOR ROUTES ---
-Route::middleware(['auth', 'role:doctor'])->prefix('doctor')->name('doctor.')->group(function () {
+Route::middleware(['auth', 'role:doctor', 'verified'])->prefix('doctor')->name('doctor.')->group(function () {
     
     // 1. Dashboard
     Route::get('/dashboard', [App\Http\Controllers\Doctor\DoctorDashboardController::class, 'index'])->name('dashboard');
@@ -83,7 +83,7 @@ Route::middleware(['auth', 'role:doctor'])->prefix('doctor')->name('doctor.')->g
 });
 
 // --- ADMIN ROUTES (Role: admin) ---
-Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
+Route::middleware(['auth', 'role:admin', 'verified'])->prefix('admin')->name('admin.')->group(function () {
     
     // Dashboard
     Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
