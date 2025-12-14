@@ -24,7 +24,7 @@ use App\Http\Controllers\Doctor\DoctorScheduleController;
 */
 
 // 1. THE HOME PAGE (This fixes the issue)
-Route::get('/', [PublicController::class, 'index'])->name('home');
+Route::get('/login', [PublicController::class, 'index'])->name('home');
 
 // 2. OTHER PUBLIC PAGES
 Route::get('/services', [PublicController::class, 'services'])->name('services.public.index');
@@ -148,8 +148,9 @@ Route::middleware(['auth', 'role:admin', 'verified'])->prefix('admin')->name('ad
     Route::delete('/staff/{id}', [StaffController::class, 'destroy'])->name('staff.destroy');
     Route::post('/staff/{id}/restore', [StaffController::class, 'restore'])->name('staff.restore');
 
-    // --- 6. REPORTS ---
-    Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
+    // Add this inside your 'admin' or 'auth' group
+// CHANGE TO THIS (Correct):
+Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
 });
 
 require __DIR__.'/auth.php';

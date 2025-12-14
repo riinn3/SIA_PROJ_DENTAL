@@ -29,9 +29,11 @@
     <div class="card shadow mb-4">
         <div class="card-header py-3">
             <ul class="nav nav-pills card-header-pills">
+                {{-- The 'Today' tab must pass the current date --}}
                 <li class="nav-item">
-                    <a class="nav-link {{ $currentTab == 'today' ? 'active' : '' }}" href="{{ route('admin.appointments.index', ['date' => now()->format('Y-m-d')]) }}">
-                        <i class="fas fa-calendar-day mr-1"></i> Today
+                    <a class="nav-link {{ request('date') == now()->format('Y-m-d') ? 'active' : '' }}" 
+                    href="{{ route('admin.appointments.index', ['date' => now()->format('Y-m-d')]) }}">
+                    Today
                     </a>
                 </li>
                 <li class="nav-item">

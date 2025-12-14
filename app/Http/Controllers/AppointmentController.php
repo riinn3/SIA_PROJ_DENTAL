@@ -7,6 +7,8 @@ use App\Models\Service;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+
+use Illuminate\Support\Facades\DB; // Import DB
 use Carbon\Carbon;
 use App\Services\AppointmentService; 
 
@@ -85,82 +87,63 @@ class AppointmentController extends Controller
         return view('admin.appointments.create', compact('patients', 'doctors', 'services', 'date'));
     }
 
-    // --- 3. STORE (Saves MINUTES now) ---
-    public function store(Request $request)
-    {
-        // Base validation rules
-        $rules = [
-            'doctor_id' => 'required|exists:users,id',
-            'service_id' => 'required|exists:services,id',
-            'appointment_date' => [
-                'required',
-                'date',
-                'after_or_equal:today', 
-                'before_or_equal:' . \Carbon\Carbon::now()->addMonths(2)->endOfMonth()->toDateString(), 
-            ],
-            'appointment_time' => [
-                'required',
-                function ($attribute, $value, $fail) use ($request) {
-                    $appointmentDateTime = \Carbon\Carbon::parse($request->appointment_date . ' ' . $value);
-                    if ($appointmentDateTime->isToday() && $appointmentDateTime->lt(\Carbon\Carbon::now())) {
-                        $fail('The ' . $attribute . ' must be a future time for today\'s appointments.');
-                    }
-                },
-            ],
-            'duration_minutes' => 'required|integer|min:30', 
-            'patient_type' => 'required|in:existing,new', // New rule for patient type
-        ];
+    // In app/Http/Controllers/AppointmentController.php
 
-        // Conditional validation based on patient_type
-        if ($request->patient_type === 'existing') {
-            $rules['user_id'] = 'required|exists:users,id';
-        } else { // new patient
-            $rules['new_patient_name'] = 'required|string|max:255';
-            $rules['new_patient_phone'] = 'required|numeric|digits:11';
+
+public function store(Request $request)
+{
+    // ... [Keep your existing validation rules] ...
+    $request->validate($rules);
+
+    // --- PRO FIX: Database Transaction & Locking ---
+    return DB::transaction(function () use ($request) {
+        
+        // 1. Lock the rows to prevent double booking (Race Condition Fix)
+        // We count existing confirmed bookings for this doctor/time, locking the reads.
+        $conflicts = Appointment::where('doctor_id', $request->doctor_id)
+            ->where('appointment_date', $request->appointment_date)
+            ->where('appointment_time', $request->appointment_time)
+            ->whereIn('status', ['confirmed', 'pending'])
+            ->lockForUpdate() // <--- CRITICAL: Locks these rows
+            ->count();
+
+        if ($conflicts > 0) {
+             // If someone snuck in a booking milliseconds ago, fail safely.
+             return redirect()->back()->withInput()->with('error', 'Slot was just taken! Please choose another.');
         }
 
-        $request->validate($rules);
-
-        $userId = null;
+        // 2. Handle User Creation (Walk-in vs Existing)
+        $userId = $request->user_id;
         if ($request->patient_type === 'new') {
-            // Create new walk-in patient
             $newPatient = User::create([
                 'name' => $request->new_patient_name,
                 'phone' => $request->new_patient_phone,
-                'email' => null, // No email for walk-in
-                'password' => null, // No password for walk-in
-                'role' => 'patient', // Assign patient role
+                'email' => null, // Walk-in
+                'password' => null,
+                'role' => 'patient',
             ]);
             $userId = $newPatient->id;
-        } else {
-            $userId = $request->user_id;
         }
 
-        // Check for conflicts using the AppointmentService
-        $conflicts = $this->appointmentService->checkConflicts([
+        // 3. Get Service Price (Snapshot Logic)
+        $service = Service::findOrFail($request->service_id);
+
+        // 4. Create Appointment
+        Appointment::create([
+            'user_id' => $userId,
             'doctor_id' => $request->doctor_id,
+            'service_id' => $request->service_id,
+            'price' => $service->price, // <--- LEDGER FIX: Save price here
             'appointment_date' => $request->appointment_date,
             'appointment_time' => $request->appointment_time,
             'duration_minutes' => $request->duration_minutes,
-        ]);
-
-        if (!empty($conflicts)) {
-            return redirect()->back()->withErrors($conflicts)->withInput();
-        }
-        
-        Appointment::create([
-            'user_id' => $userId, // Use the determined user ID
-            'doctor_id' => $request->doctor_id,
-            'service_id' => $request->service_id,
-            'appointment_date' => $request->appointment_date,
-            'appointment_time' => $request->appointment_time,
-            'duration_minutes' => $request->duration_minutes, 
-            'status' => 'confirmed' 
+            'status' => 'confirmed'
         ]);
 
         return redirect()->route('admin.appointments.index', ['status' => 'confirmed'])
             ->with('success', 'Appointment booked successfully.');
-    }
+    });
+}
 
     // --- 4. CONFIRM ACTION ---
     public function confirm(Request $request, $id)

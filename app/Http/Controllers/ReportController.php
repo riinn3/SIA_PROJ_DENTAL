@@ -16,8 +16,7 @@ class ReportController extends Controller
         $end = $request->get('end_date') ? Carbon::parse($request->end_date) : Carbon::now()->endOfMonth();
 
         // 2. MAIN LEDGER (Detailed Transactions)
-        $completedAppts = Appointment::with(['service', 'doctor', 'patient'])
-            // Explicitly say 'appointments.status' to be safe
+        $completedAppts = Appointment::with(['service', 'doctor', 'patient' => function($query) { $query->withTrashed(); }])
             ->where('appointments.status', 'completed')
             ->whereBetween('appointment_date', [$start, $end])
             ->orderBy('appointment_date')
@@ -25,7 +24,6 @@ class ReportController extends Controller
 
         // 3. SERVICE PERFORMANCE (Which treatment sells best?)
         $serviceStats = Appointment::query()
-            // FIX: Ambiguous column error solved by adding 'appointments.' prefix
             ->where('appointments.status', 'completed')
             ->whereBetween('appointment_date', [$start, $end])
             ->join('services', 'appointments.service_id', '=', 'services.id')
@@ -36,7 +34,6 @@ class ReportController extends Controller
 
         // 4. DOCTOR PRODUCTIVITY (Who is working the most?)
         $doctorStats = Appointment::query()
-            // FIX: Ambiguous column error solved here too
             ->where('appointments.status', 'completed')
             ->whereBetween('appointment_date', [$start, $end])
             ->join('users', 'appointments.doctor_id', '=', 'users.id')
@@ -47,7 +44,7 @@ class ReportController extends Controller
             ->get();
 
         // 5. CANCELLATION AUDIT
-        $cancelledAppts = Appointment::with(['patient', 'canceller'])
+        $cancelledAppts = Appointment::with(['patient' => function($query) { $query->withTrashed(); }, 'canceller'])
             ->where('appointments.status', 'cancelled')
             ->whereBetween('updated_at', [$start, $end])
             ->get();

@@ -9,8 +9,9 @@
                         <span class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm rounded-pill px-3 mr-3">
                             <i class="fas fa-calendar fa-sm text-white-50 mr-1"></i> {{ now()->format('F d, Y') }}
                         </span>
-                        <a href="{{ route('admin.reports.index') }}" class="d-none d-sm-inline-block btn btn-outline-primary btn-sm shadow-sm rounded-pill px-3">
-                            <i class="fas fa-download fa-sm text-primary mr-1"></i> Generate Report
+                        {{-- In admin/dashboard.blade.php --}}
+                        <a href="#" class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm">
+                            <i class=\"fas fa-download fa-sm text-white-50\"></i> Generate Report
                         </a>
                     </div>    </div>
 
@@ -60,7 +61,7 @@
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
                             <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                                <a href="{{ route('admin.reports.index') }}" class="text-success stretched-link" style="text-decoration: none;">Total Earnings</a>
+                                <a href="#" class="text-success stretched-link" style="text-decoration: none;">Total Earnings</a>
                             </div>
                             <div class="h5 mb-0 font-weight-bold text-gray-800">₱{{ number_format($earnings, 2) }}</div>
                         </div>
@@ -134,7 +135,7 @@
                         <a href="{{ route('admin.patients.create') }}" class="btn btn-primary shadow-sm rounded-pill px-4 py-2 mr-0 mr-md-2 mb-2 mb-md-0">
                             <i class="fas fa-user-plus mr-2"></i> Register New Patient
                         </a>
-                        <a href="{{ route('admin.reports.index') }}" class="btn btn-outline-primary shadow-sm rounded-pill px-4 py-2">
+                        <a href="#" class="btn btn-outline-primary shadow-sm rounded-pill px-4 py-2">
                             <i class="fas fa-chart-area mr-2"></i> View Reports
                         </a>
                     </div>

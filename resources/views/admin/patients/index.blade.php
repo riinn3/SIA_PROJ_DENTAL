@@ -29,27 +29,29 @@
     <div class="card shadow mb-4">
         <div class="card-header py-3">
             <ul class="nav nav-pills card-header-pills">
+                {{-- 1. ACTIVE PATIENTS (Verified Email OR Walk-ins) --}}
                 <li class="nav-item">
-                    <a class="nav-link {{ $view == 'all' ? 'active' : '' }}" href="{{ route('admin.patients.index', ['view' => 'all']) }}">
-                        <i class="fas fa-users mr-1"></i> All Patients
+                    <a class="nav-link {{ $view == 'active' ? 'active' : '' }}" href="{{ route('admin.patients.index') }}">
+                        <i class="fas fa-user-check mr-1"></i> Active Patients
                     </a>
                 </li>
+
+                {{-- 2. PENDING (Online Registrations needing Email Verification) --}}
                 <li class="nav-item">
-                    <a class="nav-link {{ $view == 'active' ? 'active' : '' }}" href="{{ route('admin.patients.index', ['view' => 'active']) }}">
-                        <i class="fas fa-user-check mr-1"></i> Active Accounts
+                    <a class="nav-link {{ $view == 'pending' ? 'active bg-warning text-dark' : 'text-warning' }}" href="{{ route('admin.patients.index', ['view' => 'pending']) }}">
+                        <i class="fas fa-envelope mr-1"></i> Pending Verification
                     </a>
                 </li>
+
+                {{-- 3. WALK-IN (Manual Registrations / No Email) --}}
                 <li class="nav-item">
-                    <a class="nav-link {{ $view == 'unverified' ? 'active bg-warning text-dark' : 'text-warning' }}" href="{{ route('admin.patients.index', ['view' => 'unverified']) }}">
-                        <i class="fas fa-envelope mr-1"></i> Unverified Emails
+                    <a class="nav-link {{ $view == 'walkin' ? 'active bg-info text-white' : 'text-info' }}" href="{{ route('admin.patients.index', ['view' => 'walkin']) }}">
+                        <i class="fas fa-walking mr-1"></i> Walk-In Only
                     </a>
                 </li>
-                <li class="nav-item">
-                    <a class="nav-link {{ $view == 'walk-in' ? 'active bg-info text-white' : 'text-info' }}" href="{{ route('admin.patients.index', ['view' => 'walk-in']) }}">
-                        <i class="fas fa-walking mr-1"></i> Walk-in Patients
-                    </a>
-                </li>
-                <li class="nav-item">
+
+                {{-- 4. ARCHIVED (Soft Deleted) --}}
+                <li class="nav-item ml-auto">
                     <a class="nav-link {{ $view == 'archived' ? 'active bg-secondary text-white' : 'text-secondary' }}" href="{{ route('admin.patients.index', ['view' => 'archived']) }}">
                         <i class="fas fa-archive mr-1"></i> Archived
                     </a>

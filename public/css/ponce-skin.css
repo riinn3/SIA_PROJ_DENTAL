@@ -9,12 +9,24 @@
 }
 
 body {
-    font-family: 'Nunito', sans-serif; /* Cleaner font */
+    font-family: 'Nunito', sans-serif;
     background-color: #f8f9fc;
     color: var(--text-dark);
-    font-size: 0.9rem; /* Slightly smaller base text */
-    overflow-x: hidden; /* Prevent horizontal scroll due to fixed sidebar */
+    /* CHANGED: Reduced from 0.9rem to 0.85rem for a tighter look */
+    font-size: 0.85rem; 
+    overflow-x: hidden;
 }
+
+/* 2. COMPACT HEADERS (Reduced Sizes) */
+h1, .h1 { font-size: 1.5rem; font-weight: 700; }   /* Was 1.75rem */
+h2, .h2 { font-size: 1.25rem; font-weight: 700; }  /* Was 1.5rem */
+h3, .h3 { font-size: 1.15rem; font-weight: 700; }  /* Was 1.25rem */
+h4, .h4 { font-size: 1rem; font-weight: 700; }     /* Was 1.1rem */
+h5, .h5 { font-size: 0.9rem; font-weight: 700; }   /* Was 1rem */
+
+.text-primary { color: var(--primary) !important; }
+a { color: var(--primary); text-decoration: none; }
+a:hover { color: var(--primary-dark); text-decoration: none; }
 
 /* 1. SIDEBAR REDESIGN (Modern Dark) */
 .sidebar {

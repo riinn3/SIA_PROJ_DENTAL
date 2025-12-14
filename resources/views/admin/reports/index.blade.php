@@ -91,7 +91,7 @@
                                     @forelse($completedAppts as $appt)
                                     <tr>
                                         <td>{{ $appt->appointment_date->format('M d, Y') }}</td>
-                                        <td>{{ $appt->patient->name }}</td>
+                                        <td>{{ $appt->patient->name ?? 'N/A (Patient Deleted)' }}</td>
                                         <td>{{ $appt->service->name }}</td>
                                         <td>Dr. {{ $appt->doctor->name }}</td>
                                         <td class="text-right font-weight-bold">₱{{ number_format($appt->service->price, 2) }}</td>

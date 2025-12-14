@@ -1,20 +1,22 @@
-@extends('layouts.guest')
-
 @section('content')
 <div class="container-fluid p-0">
     
     {{-- 1. HERO SECTION --}}
-    {{-- Added 'mb-5' for spacing below the pink curve --}}
-    <div class="hero-curve text-white text-center position-relative mb-5" style="padding-top: 4rem; padding-bottom: 5rem;">
+    {{-- CHANGED: Reduced padding-top to 3rem and padding-bottom to 4rem --}}
+    <div class="hero-curve text-white text-center position-relative mb-4" style="padding-top: 3rem; padding-bottom: 4rem;">
         <div class="container">
-            <h1 class="font-weight-bold mb-3" style="font-size: 2.5rem;">Ponce Miranda Dental</h1>
-            <p class="lead mb-4 opacity-90" style="font-size: 1.1rem;">Experience elegant care for your perfect smile.</p>
+            {{-- CHANGED: Reduced font-size to 2rem and margin-bottom to 2 --}}
+            <h1 class="font-weight-bold mb-2" style="font-size: 2rem;">Ponce Miranda Dental</h1>
+            
+            {{-- CHANGED: Reduced font-size to 1rem --}}
+            <p class="lead mb-4 opacity-90" style="font-size: 1rem;">Experience elegant care for your perfect smile.</p>
             
             <div class="d-flex justify-content-center gap-3">
-                <a href="{{ route('login') }}" class="btn btn-primary btn-lg shadow-sm px-4 mr-3 rounded-pill">
+                {{-- CHANGED: Switched to 'btn-md' instead of 'btn-lg' --}}
+                <a href="{{ route('login') }}" class="btn btn-primary btn-md shadow-sm px-4 mr-3 rounded-pill">
                     Log In
                 </a>
-                <a href="{{ route('register') }}" class="btn btn-info btn-lg px-4 rounded-pill">
+                <a href="{{ route('register') }}" class="btn btn-info btn-md px-4 rounded-pill">
                     New Patient
                 </a>
             </div>
