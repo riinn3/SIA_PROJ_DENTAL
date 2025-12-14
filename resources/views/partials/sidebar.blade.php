@@ -81,8 +81,16 @@
     {{-- UPDATED LINK --}}
     <li class="nav-item {{ request()->routeIs('doctor.consultations') ? 'active' : '' }}">
         <a class="nav-link" href="{{ route('doctor.consultations') }}">
-            <i class="fas fa-fw fa-file-medical"></i>
-            <span>Consultations</span>
+            <i class="fas fa-fw fa-users"></i>
+            <span>Patients</span>
+        </a>
+    </li>
+
+    {{-- NEW LINK FOR TODAY'S CONSULTATIONS --}}
+    <li class="nav-item {{ request()->routeIs('doctor.todaysConsultations') ? 'active' : '' }}">
+        <a class="nav-link" href="{{ route('doctor.todaysConsultations') }}">
+            <i class="fas fa-fw fa-notes-medical"></i>
+            <span>Today's Consultations</span>
         </a>
     </li>
 

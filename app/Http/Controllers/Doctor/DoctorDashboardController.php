@@ -54,34 +54,140 @@ class DoctorDashboardController extends Controller
     /**
      * Show list of recent appointments for diagnosis/notes.
      */
-    public function recentConsultations()
+    public function recentConsultations(Request $request)
     {
-        // Fetch appointments that are completed (past interactions)
+        $doctorId = Auth::id();
+        $search = $request->query('search');
+
         $appointments = Appointment::with(['patient', 'service'])
-            ->where('doctor_id', Auth::id())
-            ->where('status', 'completed')
-            ->orderByDesc('appointment_date') // Newest first
+            ->where('doctor_id', $doctorId)
+            ->where('status', 'completed');
+
+        if ($search) {
+            $appointments->where(function ($query) use ($search) {
+                $query->whereHas('patient', function ($q) use ($search) {
+                    $q->where('name', 'like', '%' . $search . '%');
+                })
+                ->orWhereHas('service', function ($q) use ($search) {
+                    $q->where('name', 'like', '%' . $search . '%');
+                });
+            });
+        }
+            
+        $appointments = $appointments->orderByDesc('appointment_date') // Newest first
             ->orderByDesc('appointment_time')
             ->paginate(10);
 
-        return view('doctor.consultations', compact('appointments'));
+        return view('doctor.consultations', compact('appointments', 'search'));
     }
+
+    /**
+     * Show a list of patients for consultation history.
+     */
+    public function patientList(Request $request)
+    {
+        $doctorId = Auth::id();
+        $search = $request->query('search');
+
+        // Get unique patient IDs who had completed appointments with this doctor
+        $patientIds = Appointment::where('doctor_id', $doctorId)
+            ->where('status', 'completed')
+            ->distinct('user_id')
+            ->pluck('user_id');
+
+        // Fetch the patients
+        $patients = \App\Models\User::whereIn('id', $patientIds)
+            ->where('role', 'patient'); // Ensure they are patients
+
+        if ($search) {
+            $patients->where('name', 'like', '%' . $search . '%');
+        }
+
+        $patients = $patients->orderBy('name')
+            ->paginate(10);
+
+        return view('doctor.consultations', compact('patients', 'search'));
+    }
+
+    /**
+     * Show detailed consultation history for a specific patient.
+     * Includes appointments from all doctors.
+     */
+    public function showPatientConsultations(\App\Models\User $patient, Request $request)
+    {
+        // Ensure the fetched user is indeed a patient
+        if ($patient->role !== 'patient') {
+            abort(404); // Or redirect with an error
+        }
+
+        $search = $request->query('search');
+
+        $appointments = Appointment::with(['doctor', 'service'])
+            ->where('user_id', $patient->id)
+            ->where('status', 'completed');
+            
+        // Search by service name if a search term is present
+        if ($search) {
+            $appointments->whereHas('service', function ($query) use ($search) {
+                $query->where('name', 'like', '%' . $search . '%');
+            });
+        }
+
+        $appointments = $appointments->orderByDesc('appointment_date')
+            ->orderByDesc('appointment_time')
+            ->paginate(10);
+
+        return view('doctor.patient_consultations_detail', compact('patient', 'appointments', 'search'));
+    }
+
+    /**
+     * Show list of completed consultations for the current day for the logged-in doctor.
+     */
+    public function todaysConsultations(Request $request)
+    {
+        $doctorId = Auth::id();
+        $today = Carbon::today();
+        $search = $request->query('search');
+
+        $appointments = Appointment::with(['patient', 'service'])
+            ->where('doctor_id', $doctorId)
+            ->whereDate('appointment_date', $today)
+            ->where('status', 'completed'); // Only completed appointments for today
+
+        if ($search) {
+            $appointments->where(function ($query) use ($search) {
+                $query->whereHas('patient', function ($q) use ($search) {
+                    $q->where('name', 'like', '%' . $search . '%');
+                })
+                ->orWhereHas('service', function ($q) use ($search) {
+                    $q->where('name', 'like', '%' . $search . '%');
+                });
+            });
+        }
+            
+        $appointments = $appointments->orderByDesc('appointment_time') // Order by time for today
+            ->paginate(10);
+
+        return view('doctor.todays_consultations', compact('appointments', 'search'));
+    }
+
 
     /**
      * Save Medical Notes / Diagnosis.
      */
-    public function updateDiagnosis(Request $request, $id)
+    public function updateDiagnosis(Request $request, Appointment $appointment) // Using Route Model Binding
     {
         $request->validate([
             'diagnosis' => 'required|string|min:5',
             'prescription' => 'nullable|string'
         ]);
 
-        $appt = Appointment::where('id', $id)
-            ->where('doctor_id', Auth::id())
-            ->firstOrFail();
+        // Ensure the logged-in doctor is authorized to update this appointment
+        if ($appointment->doctor_id !== Auth::id()) {
+            abort(403, 'Unauthorized action.');
+        }
 
-        $appt->update([
+        $appointment->update([
             'diagnosis' => $request->diagnosis,
             'prescription' => $request->prescription,
             'status' => 'completed' // Auto-complete the appointment when notes are added

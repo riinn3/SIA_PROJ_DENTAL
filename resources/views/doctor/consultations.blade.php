@@ -3,7 +3,23 @@
 @section('content')
 <div class="container-fluid">
     <div class="d-sm-flex align-items-center justify-content-between mb-4">
-        <h1 class="h3 mb-0 text-gray-800">Patient Consultations</h1>
+        <h1 class="h3 mb-0 text-gray-800">Patients</h1>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6 mb-4"> {{-- Constrain width to 50% and add bottom margin --}}
+            <form action="{{ route('doctor.consultations') }}" method="GET">
+                <div class="input-group border rounded"> {{-- Add border and rounded corners --}}
+                    <input type="search" name="search" class="form-control bg-light small border-0" placeholder="Search patient name..."
+                        aria-label="Search" aria-describedby="basic-addon2" value="{{ request('search') }}">
+                    <div class="input-group-append">
+                        <button class="btn btn-primary rounded-right" type="submit"> {{-- Apply rounded-right to match input-group --}}
+                            <i class="fas fa-search fa-sm"></i>
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
     </div>
 
     {{-- FLASH MESSAGES --}}
@@ -27,106 +43,58 @@
 
     <div class="card shadow mb-4">
         <div class="card-header py-3">
-            <h6 class="m-0 font-weight-bold text-primary">Past Consultations</h6>
+            <h6 class="m-0 font-weight-bold text-primary">Patient List @if(request('search')) (Filtered by "{{ request('search') }}") @endif</h6>
         </div>
         <div class="card-body p-0">
             <div class="table-responsive">
                 <table class="table table-hover mb-0">
                     <thead class="bg-light">
                         <tr>
-                            <th>Date</th>
-                            <th>Patient</th>
-                            <th>Service</th>
-                            <th>Diagnosis Status</th>
+                            <th>Patient Name</th>
+                            <th>Contact Info</th>
+                            <th>Last Consultation (Your Record)</th>
                             <th class="text-right">Action</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse($appointments as $appt)
-                        <tr>
-                            {{-- Date & Time --}}
-                            <td class="align-middle">
-                                <div class="font-weight-bold text-dark">{{ $appt->appointment_date->format('M d, Y') }}</div>
-                                <div class="small text-muted">{{ $appt->appointment_time->format('h:i A') }}</div>
-                            </td>
-
+                        @forelse($patients as $patient)
+                        <tr onclick="window.location='{{ route('doctor.patient.consultations', $patient->id) }}'" style="cursor:pointer;">
                             {{-- Patient Info --}}
                             <td class="align-middle">
-                                <div class="font-weight-bold">{{ $appt->patient->name ?? 'Unknown/Archived Patient' }}</div>
-                                <div class="small text-muted">{{ $appt->patient->phone ?? 'No Phone' }}</div>
+                                <div class="font-weight-bold">{{ $patient->name }}</div>
+                                <div class="small text-muted">{{ $patient->email }}</div>
                             </td>
 
-                            {{-- Service --}}
+                            {{-- Contact Info --}}
                             <td class="align-middle">
-                                <span class="badge badge-light border">{{ $appt->service->name }}</span>
+                                <div class="font-weight-bold">{{ $patient->phone ?? 'N/A' }}</div>
                             </td>
 
-                            {{-- Status Badge --}}
+                            {{-- Last Consultation Date (for current doctor only) --}}
                             <td class="align-middle">
-                                @if($appt->diagnosis)
-                                    <span class="badge badge-soft-success px-3 py-2 rounded-pill"><i class="fas fa-check mr-1"></i> Recorded</span>
+                                @php
+                                    $lastAppt = $patient->appointments()->where('doctor_id', Auth::id())->where('status', 'completed')->orderByDesc('appointment_date')->first();
+                                @endphp
+                                @if($lastAppt)
+                                    <div class="font-weight-bold">{{ $lastAppt->appointment_date->format('M d, Y') }}</div>
+                                    <div class="small text-muted">{{ $lastAppt->appointment_time->format('h:i A') }}</div>
                                 @else
-                                    <span class="badge badge-soft-warning px-3 py-2 rounded-pill"><i class="fas fa-pen mr-1"></i> Needs Notes</span>
+                                    <span class="text-muted">No records with you</span>
                                 @endif
                             </td>
 
-                            {{-- Action Button & Modal --}}
+                            {{-- Action Button --}}
                             <td class="align-middle text-right">
-                                <button class="btn btn-sm btn-primary shadow-sm" data-toggle="modal" data-target="#diagnosisModal-{{ $appt->id }}">
-                                    <i class="fas fa-file-medical-alt mr-1"></i> 
-                                    {{ $appt->diagnosis ? 'Edit Notes' : 'Add Diagnosis' }}
-                                </button>
-
-                                {{-- DIAGNOSIS MODAL (Moved inside TD for valid HTML) --}}
-                                <div class="modal fade text-left" id="diagnosisModal-{{ $appt->id }}" tabindex="-1" role="dialog" aria-hidden="true">
-                                    <div class="modal-dialog modal-lg" role="document">
-                                        <div class="modal-content border-0 shadow-lg">
-                                            <div class="modal-header bg-primary text-white">
-                                                <h5 class="modal-title font-weight-bold">Medical Notes: {{ $appt->patient->name ?? 'Unknown' }}</h5>
-                                                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
-                                                    <span aria-hidden="true">&times;</span>
-                                                </button>
-                                            </div>
-                                            <form action="{{ route('doctor.appointment.updateDiagnosis', $appt->id) }}" method="POST">
-                                                @csrf
-                                                @method('PUT')
-                                                <div class="modal-body">
-                                                    <div class="row">
-                                                        <div class="col-md-6 border-right">
-                                                            <h6 class="font-weight-bold text-primary mb-3">Appointment Details</h6>
-                                                            <p class="mb-1"><strong>Service:</strong> {{ $appt->service->name }}</p>
-                                                            <p class="mb-1"><strong>Date:</strong> {{ $appt->appointment_date->format('F d, Y') }}</p>
-                                                            <p class="mb-3"><strong>Time:</strong> {{ $appt->appointment_time->format('h:i A') }}</p>
-                                                        </div>
-                                                        <div class="col-md-6">
-                                                            <div class="form-group">
-                                                                <label class="font-weight-bold text-dark">Clinical Diagnosis <span class="text-danger">*</span></label>
-                                                                <textarea name="diagnosis" class="form-control" rows="4" placeholder="Enter findings here..." required>{{ $appt->diagnosis }}</textarea>
-                                                            </div>
-                                                            <div class="form-group">
-                                                                <label class="font-weight-bold text-dark">Prescription / Advice</label>
-                                                                <textarea name="prescription" class="form-control" rows="3" placeholder="Meds or instructions...">{{ $appt->prescription }}</textarea>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div class="modal-footer bg-light">
-                                                    <button type="button" class="btn btn-secondary rounded-pill px-4" data-dismiss="modal">Close</button>
-                                                    <button type="submit" class="btn btn-primary rounded-pill px-4">
-                                                        <i class="fas fa-save mr-1"></i> Save Record
-                                                    </button>
-                                                </div>
-                                            </form>
-                                        </div>
-                                    </div>
-                                </div>
+                                <a href="{{ route('doctor.patient.consultations', $patient->id) }}" class="btn btn-sm btn-primary shadow-sm">
+                                    <i class="fas fa-eye mr-1"></i> View All Records
+                                </a>
                             </td>
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="5" class="text-center py-5 text-muted">
+                            <td colspan="4" class="text-center py-5 text-muted">
                                 <i class="fas fa-folder-open fa-3x mb-3 text-gray-300"></i><br>
-                                No recent consultations found.
+                                No patients with completed consultations found.
                             </td>
                         </tr>
                         @endforelse
@@ -135,7 +103,7 @@
             </div>
         </div>
         <div class="card-footer bg-white d-flex justify-content-end">
-            {{ $appointments->links() }}
+            {{ $patients->appends(['search' => request('search')])->links() }}
         </div>
     </div>
 </div>

@@ -69,8 +69,8 @@ class CalendarController extends Controller
                 $count = Appointment::whereDate('appointment_date', $dateStr)
                     ->where('doctor_id', $doctorId)->where('status', '!=', 'cancelled')->count();
                 
-                // SKIP IF 0 PATIENTS (Don't clutter calendar) unless it's an explicit schedule
-                if ($count == 0 && !$isDayOff && !$savedSchedules->has($dateStr)) {
+                // SKIP IF 0 PATIENTS (Don't clutter calendar)
+                if ($count == 0 && !$isDayOff) {
                     $curr->addDay();
                     continue;
                 }

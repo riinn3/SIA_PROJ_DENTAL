@@ -92,7 +92,7 @@
                         <span class="small text-muted">Manage walk-ins and daily operations with ease.</span>
                     </div>
                     <div class="d-flex flex-column flex-md-row">
-                        <a href="{{ route('admin.appointments.create') }}" class="btn btn-primary shadow-sm rounded-pill px-4 py-2 mr-0 mr-md-2 mb-2 mb-md-0">
+                        <a href="{{ route('admin.schedules.index') }}" class="btn btn-primary shadow-sm rounded-pill px-4 py-2 mr-0 mr-md-2 mb-2 mb-md-0">
                             <i class="fas fa-calendar-check mr-2"></i> Book Walk-In
                         </a>
                         <a href="{{ route('admin.patients.create') }}" class="btn btn-primary shadow-sm rounded-pill px-4 py-2 mr-0 mr-md-2 mb-2 mb-md-0">

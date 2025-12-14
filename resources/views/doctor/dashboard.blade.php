@@ -24,29 +24,32 @@
         </div>
     </div>
 
-    {{-- 1. "UP NEXT" HERO CARD (If exists) --}}
-    @if($nextPatient)
-        <div class="card shadow mb-4 border-left-primary bg-gradient-light">
-            <div class="card-body">
-                <div class="row align-items-center">
-                    <div class="col-md-8">
-                        <h5 class="text-primary font-weight-bold text-uppercase mb-1">Up Next</h5>
+    {{-- 1. "UP NEXT" HERO CARD --}}
+    <div class="card shadow mb-4 border-left-primary bg-gradient-light">
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h5 class="text-primary font-weight-bold text-uppercase mb-1">Up Next</h5>
+                    @if($nextPatient)
                         <h2 class="font-weight-bold text-gray-900 mb-1">{{ $nextPatient->patient->name ?? 'Unknown' }}</h2>
                         <p class="mb-0 text-muted">
                             <i class="fas fa-notes-medical mr-1"></i> {{ $nextPatient->service->name }} 
                             <span class="mx-2">|</span> 
                             <i class="far fa-clock mr-1"></i> {{ $nextPatient->appointment_time->format('h:i A') }}
                         </p>
-                    </div>
-                    <div class="col-md-4 text-right">
-                        <a href="{{ route('doctor.consultations') }}" class="btn btn-primary btn-lg shadow-sm rounded-pill px-4">
-                            Start Consultation <i class="fas fa-arrow-right ml-2"></i>
-                        </a>
-                    </div>
+                    @else
+                        <h2 class="font-weight-bold text-gray-700 mb-1">No Patient Up Next</h2>
+                        <p class="mb-0 text-muted">All confirmed appointments for today have been completed or are in the future.</p>
+                    @endif
+                </div>
+                <div class="col-md-4 text-right">
+                    <a href="{{ route('doctor.todaysConsultations') }}" class="btn btn-primary btn-lg shadow-sm rounded-pill px-4">
+                        Go to Today's Consultations <i class="fas fa-arrow-right ml-2"></i>
+                    </a>
                 </div>
             </div>
         </div>
-    @endif
+    </div>
 
     {{-- 2. KPI CARDS --}}
     <div class="row">
@@ -99,7 +102,6 @@
                             <th>Patient Name</th>
                             <th>Service</th>
                             <th>Status</th>
-                            <th>Action</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -120,19 +122,10 @@
                                     <span class="badge badge-secondary px-3 py-2 rounded-pill">Completed</span>
                                 @endif
                             </td>
-                            <td class="align-middle">
-                                @if($appt->status == 'confirmed' || $appt->status == 'completed')
-                                    <a href="{{ route('doctor.consultations') }}" class="btn btn-sm btn-primary shadow-sm rounded-pill">
-                                        <i class="fas fa-stethoscope mr-1"></i> Consult
-                                    </a>
-                                @else
-                                    <span class="text-muted small">Wait for Confirm</span>
-                                @endif
-                            </td>
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="5" class="text-center py-5 text-muted">
+                            <td colspan="4" class="text-center py-5 text-muted">
                                 <i class="fas fa-mug-hot fa-3x mb-3 text-gray-300"></i><br>
                                 No appointments scheduled for today.
                             </td>

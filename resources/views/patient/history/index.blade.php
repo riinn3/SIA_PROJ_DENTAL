@@ -23,6 +23,7 @@
                             <th class="border-top-0">Date & Time</th>
                             <th class="border-top-0">Treatment</th>
                             <th class="border-top-0">Doctor</th>
+                            <th class="border-top-0">Diagnosis / Advice</th> {{-- NEW COLUMN --}}
                             <th class="border-top-0 text-right">Action</th>
                         </tr>
                     </thead>
@@ -58,6 +59,42 @@
                                 <i class="fas fa-user-md text-gray-400 mr-1"></i> Dr. {{ $appt->doctor->name }}
                             </td>
 
+                            {{-- DIAGNOSIS / ADVICE COLUMN (NEW) --}}
+                            <td class="align-middle">
+                                @if($appt->status == 'completed' && ($appt->diagnosis || $appt->prescription))
+                                    <button class="btn btn-info btn-sm rounded-pill px-3" data-toggle="modal" data-target="#diagnosisModal-{{ $appt->id }}">
+                                        View Details
+                                    </button>
+                                    {{-- Diagnosis Modal --}}
+                                    <div class="modal fade" id="diagnosisModal-{{ $appt->id }}" tabindex="-1" role="dialog" aria-hidden="true">
+                                        <div class="modal-dialog modal-lg" role="document">
+                                            <div class="modal-content">
+                                                <div class="modal-header bg-info text-white">
+                                                    <h5 class="modal-title">Diagnosis & Advice for {{ $appt->service->name }}</h5>
+                                                    <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                                                        <span aria-hidden="true">&times;</span>
+                                                    </button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    <p><strong>Date:</strong> {{ $appt->appointment_date->format('M d, Y') }}</p>
+                                                    <p><strong>Doctor:</strong> Dr. {{ $appt->doctor->name }}</p>
+                                                    <hr>
+                                                    <h6>Diagnosis:</h6>
+                                                    <p>{{ $appt->diagnosis ?? 'No diagnosis recorded.' }}</p>
+                                                    <h6>Prescription/Advice:</h6>
+                                                    <p>{{ $appt->prescription ?? 'No prescription/advice recorded.' }}</p>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                @else
+                                    <span class="text-muted">N/A</span>
+                                @endif
+                            </td>
+
                             {{-- ACTIONS COLUMN --}}
                             <td class="align-middle text-right">
                                 {{-- CANCEL BUTTON (Only for Pending or Confirmed) --}}
@@ -77,7 +114,7 @@
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="5" class="text-center py-5">
+                            <td colspan="6" class="text-center py-5"> {{-- Changed colspan to 6 --}}
                                 <img src="https://img.icons8.com/clouds/100/000000/todo-list.png" class="mb-3 opacity-50">
                                 <p class="text-muted mb-0">You haven't booked any appointments yet.</p>
                             </td>

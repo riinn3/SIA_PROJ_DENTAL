@@ -68,18 +68,20 @@ Route::middleware(['auth', 'role:doctor', 'verified'])->prefix('doctor')->name('
     // 1. Dashboard
     Route::get('/dashboard', [App\Http\Controllers\Doctor\DoctorDashboardController::class, 'index'])->name('dashboard');
     
-    // 2. Diagnosis Update
-    Route::post('/appointment/{id}/diagnosis', [App\Http\Controllers\Doctor\DoctorDashboardController::class, 'updateDiagnosis'])->name('diagnosis.update');
+    // Diagnosis Update (Unified PUT route)
+    Route::put('appointments/{appointment}/diagnosis', [App\Http\Controllers\Doctor\DoctorDashboardController::class, 'updateDiagnosis'])->name('appointments.updateDiagnosis');
 
-    // 3. SCHEDULE MANAGEMENT (This is the missing part causing your error)
+    // 3. SCHEDULE MANAGEMENT (Restored)
     Route::get('/schedule', [App\Http\Controllers\Doctor\DoctorScheduleController::class, 'index'])->name('schedule.index');
     Route::post('/schedule/update-date', [App\Http\Controllers\Doctor\DoctorScheduleController::class, 'updateDateSchedule'])->name('schedule.updateDate');
-
-    // REPLACES "My Patients" with "Consultations"
-    Route::get('consultations', [App\Http\Controllers\Doctor\DoctorDashboardController::class, 'recentConsultations'])->name('consultations');
     
-    // Ensure the update route is correct (PUT method)
-    Route::put('appointment/{appointment}/diagnosis', [App\Http\Controllers\Doctor\DoctorDashboardController::class, 'updateDiagnosis'])->name('appointment.updateDiagnosis');
+    // Consultations (now lists patients)
+    Route::get('consultations', [App\Http\Controllers\Doctor\DoctorDashboardController::class, 'patientList'])->name('consultations');
+    // Detailed consultation history for a specific patient
+    Route::get('consultations/{patient}', [App\Http\Controllers\Doctor\DoctorDashboardController::class, 'showPatientConsultations'])->name('patient.consultations');
+    
+    // Today's Consultations
+    Route::get('todays-consultations', [App\Http\Controllers\Doctor\DoctorDashboardController::class, 'todaysConsultations'])->name('todaysConsultations');
 });
 
 // --- ADMIN ROUTES (Role: admin) ---
@@ -122,6 +124,8 @@ Route::middleware(['auth', 'role:admin', 'verified'])->prefix('admin')->name('ad
     
     // Manual Blocking (Admin Only)
     Route::post('/appointments/block-slot', [AppointmentController::class, 'blockSlot'])->name('appointments.block');
+    // Available Slots for Walk-in Booking
+    Route::get('/appointments/available-slots', [AppointmentController::class, 'getAvailableSlots'])->name('appointments.availableSlots');
 
     // --- 4. PATIENTS ---
     Route::get('/patients', [PatientController::class, 'index'])->name('patients.index');
