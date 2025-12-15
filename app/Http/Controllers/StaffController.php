@@ -8,36 +8,65 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
 use App\Notifications\InviteStaff;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Password;
+use Illuminate\Validation\Rule;
 
+/**
+ * Manages clinic staff accounts (Doctors and Admins).
+ * 
+ * Handles the invitation flow, where staff are created with a temporary state
+ * and invited to set their credentials. Also handles updates and archiving.
+ */
 class StaffController extends Controller
 {
+    /**
+     * Display a list of staff members with filtering options.
+     *
+     * - active: Fully registered staff with verified emails.
+     * - pending: Invited staff who have not yet set their password/verified email.
+     * - archived: Soft-deleted staff accounts.
+     * 
+     * @param Request $request
+     * @return \Illuminate\View\View
+     */
     public function index(Request $request)
     {
-        $view = $request->get('view', 'active'); // Default tab
+        $view = $request->get('view', 'active'); 
 
-        // Common query part
+        // Base query for staff roles only
         $query = User::whereIn('role', ['admin', 'doctor']);
 
         if ($view === 'pending') {
-            // Pending = Users who haven't verified email yet
             $staff = $query->whereNull('email_verified_at')->orderBy('created_at', 'desc')->paginate(10);
         } elseif ($view === 'archived') {
             $staff = User::onlyTrashed()->whereIn('role', ['admin', 'doctor'])->paginate(10);
         } else {
-            // Active = Verified users
             $staff = $query->whereNotNull('email_verified_at')->orderBy('created_at', 'desc')->paginate(10);
         }
                      
         return view('admin.staff.index', compact('staff', 'view'));
     }
 
-    // 2. SHOW INVITE FORM
+    /**
+     * Show the invitation form for new staff.
+     *
+     * @return \Illuminate\View\View
+     */
     public function create()
     {
         return view('admin.staff.create');
     }
 
-    // Find the store() method and replace it
+    /**
+     * Invite a new staff member.
+     * 
+     * Creates a user account with a random, temporary password. Then generates
+     * a secure password reset token and sends it via email (mimicking an "invitation").
+     * This ensures the admin never knows the staff member's password.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\RedirectResponse
+     */
     public function store(Request $request)
     {
         $request->validate([
@@ -47,40 +76,51 @@ class StaffController extends Controller
             'phone' => 'nullable|numeric|digits:11'
         ]);
 
-        // 1. Create Staff with RANDOM password
+        // Create the user with a placeholder password
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'role' => $request->role,
             'phone' => $request->phone,
-            'password' => \Illuminate\Support\Facades\Hash::make(\Illuminate\Support\Str::random(16)),
+            'password' => Hash::make(Str::random(16)),
         ]);
 
-        // 2. Send Invitation / Set Password Link
-        $token = \Illuminate\Support\Facades\Password::createToken($user);
+        // Generate a password reset link and notify the user
+        $token = Password::createToken($user);
         $user->sendPasswordResetNotification($token);
 
         return redirect()->route('admin.staff.index')
             ->with('success', "Invitation sent to new {$request->role}.");
     }
 
-    // 3. SHOW EDIT FORM
+    /**
+     * Show the form for editing a staff member's details.
+     *
+     * @param int $id
+     * @return \Illuminate\View\View
+     */
     public function edit($id)
     {
         $staff = User::whereIn('role', ['admin', 'doctor'])->findOrFail($id);
         return view('admin.staff.edit', compact('staff'));
     }
 
-    // 4. UPDATE STAFF
+    /**
+     * Update a staff member's profile information.
+     *
+     * @param Request $request
+     * @param int $id
+     * @return \Illuminate\Http\RedirectResponse
+     */
     public function update(Request $request, $id)
     {
         $staff = User::whereIn('role', ['admin', 'doctor'])->findOrFail($id);
         
         $request->validate([
             'name' => 'required|string|max:255',
-            'email' => ['required', 'email', \Illuminate\Validation\Rule::unique('users')->ignore($staff->id)],
+            'email' => ['required', 'email', Rule::unique('users')->ignore($staff->id)],
             'role' => 'required|in:admin,doctor',
-            'phone' => 'nullable|numeric|digits:11', // Enforce 11-digit phone number
+            'phone' => 'nullable|numeric|digits:11', 
         ]);
 
         $staff->update($request->all());
@@ -89,7 +129,14 @@ class StaffController extends Controller
             ->with('success', "Staff member '{$staff->name}' updated successfully.");
     }
 
-    // ARCHIVE (Soft Delete)
+    /**
+     * Archive (soft delete) a staff member.
+     * 
+     * Prevents self-deletion to avoid admin lockout.
+     *
+     * @param int $id
+     * @return \Illuminate\Http\RedirectResponse
+     */
     public function destroy($id)
     {
         $user = User::findOrFail($id);
@@ -98,7 +145,12 @@ class StaffController extends Controller
         return back()->with('success', 'Staff member archived.');
     }
 
-    // RESTORE
+    /**
+     * Restore an archived staff member.
+     *
+     * @param int $id
+     * @return \Illuminate\Http\RedirectResponse
+     */
     public function restore($id)
     {
         User::onlyTrashed()->findOrFail($id)->restore();

@@ -7,31 +7,47 @@ use App\Models\Service;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-
-use Illuminate\Support\Facades\DB; // Import DB
+use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use App\Services\AppointmentService; 
 
+/**
+ * Manages the full lifecycle of appointments within the admin panel.
+ * 
+ * This controller handles listing, creating (booking), updating, canceling,
+ * and managing the status of appointments. It also includes utility methods
+ * for checking availability and blocking specific time slots on the calendar.
+ */
 class AppointmentController extends Controller
 {
     protected $appointmentService;
 
+    /**
+     * Initialize the controller with the AppointmentService.
+     *
+     * @param AppointmentService $appointmentService Service for handling complex appointment logic like conflict checks.
+     */
     public function __construct(AppointmentService $appointmentService)
     {
         $this->appointmentService = $appointmentService;
     }
 
+    /**
+     * Display a paginated list of appointments with advanced filtering and sorting.
+     *
+     * @param Request $request
+     * @return \Illuminate\View\View
+     */
     public function index(Request $request)
     {
-        // 1. Filter Parameters
+        // Extract filter parameters from the request
         $search = $request->get('search');
         $startDate = $request->get('start_date');
         $endDate = $request->get('end_date');
         $date = $request->get('date'); 
-        
-        $status = $request->get('status'); // Nullable initially
+        $status = $request->get('status');
 
-        // 2. Sorting Parameters (New Logic)
+        // Determine sorting criteria, defaulting to appointment date
         $sort = $request->get('sort', 'appointment_date'); 
         $direction = $request->get('direction', 'asc');
 
@@ -40,19 +56,20 @@ class AppointmentController extends Controller
             $sort = 'appointment_date';
         }
 
-        // 3. Build Query
+        // Initialize the query with eager loading for performance
         $query = Appointment::with(['patient', 'doctor', 'service']);
 
+        // Apply filters based on the view mode (Daily vs. Range)
         if ($date) {
+            // "Day View": Show appointments for a specific date, excluding internal blocks
             $query->whereDate('appointment_date', $date)
-                  ->where('status', '!=', 'blocked'); // Exclude blocked slots
+                  ->where('status', '!=', 'blocked'); 
             
-            // Allow sub-filtering by status within Today view
             if ($status) {
                 $query->where('status', $status);
             }
         } else {
-            // Default View
+            // "List View": Default to showing pending appointments or a filtered range
             $status = $status ?: 'pending';
             $query->where('status', $status);
             
@@ -61,6 +78,7 @@ class AppointmentController extends Controller
             }
         }
         
+        // Apply search functionality across patient and doctor names
         if ($search) {
             $query->where(function($q) use ($search) {
                 $q->whereHas('patient', function($sub) use ($search) {
@@ -72,9 +90,10 @@ class AppointmentController extends Controller
             });
         }
 
-        // 4. Apply Sorting
+        // Apply sorting
         $query->orderBy($sort, $direction);
         
+        // If sorting by date, secondary sort by time ensures chronological order
         if ($sort == 'appointment_date') {
             $query->orderBy('appointment_time', $direction);
         }
@@ -86,7 +105,12 @@ class AppointmentController extends Controller
         return view('admin.appointments.index', compact('appointments', 'status', 'search', 'startDate', 'endDate', 'sort', 'direction', 'date', 'currentTab'));
     }
 
-    // --- 2. SHOW WALK-IN FORM ---
+    /**
+     * Show the form for creating a new appointment (Walk-in Booking).
+     *
+     * @param Request $request
+     * @return \Illuminate\View\View
+     */
     public function create(Request $request) 
     {
         $patients = User::where('role', 'patient')->get();
@@ -97,40 +121,42 @@ class AppointmentController extends Controller
         return view('admin.appointments.create', compact('patients', 'doctors', 'services', 'date'));
     }
 
-    // In app/Http/Controllers/AppointmentController.php
-
-
-// --- 3. STORE (Handle Booking Logic) ---
+    /**
+     * Store a newly created appointment in storage.
+     * 
+     * Handles both existing patients and new walk-in registrations.
+     * Uses a database transaction to ensure data integrity and prevent double bookings.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\RedirectResponse
+     */
     public function store(Request $request)
     {
-        // 1. Define Base Validation Rules (FIX: Defined at the very top)
+        // Define core validation rules required for all appointments
         $rules = [
             'doctor_id'        => 'required|exists:users,id',
             'service_id'       => 'required|exists:services,id',
             'appointment_date' => 'required|date|after_or_equal:today',
             'appointment_time' => 'required',
             'duration_minutes' => 'required|integer|min:30',
-            // Ensure we know if it's a "new" (walk-in) or "existing" patient
             'patient_type'     => 'required|in:existing,new', 
         ];
 
-        // 2. Add Conditional Rules based on Patient Type
+        // Add conditional validation based on whether the patient is new or existing
         if ($request->patient_type === 'existing') {
-            // Existing patient must select a valid user ID
             $rules['user_id'] = 'required|exists:users,id';
         } else {
-            // New Walk-in patient must provide name and phone
+            // New patients require basic contact info for account creation
             $rules['new_patient_name']  = 'required|string|max:255';
             $rules['new_patient_phone'] = ['required', 'regex:/^09\d{9}$/'];
         }
 
-        // 3. Run Validation (Now $rules is guaranteed to exist)
         $validated = $request->validate($rules);
 
-        // --- Database Transaction to Prevent Double Booking ---
+        // Execute the booking process within a transaction to handle race conditions
         return DB::transaction(function () use ($request) {
             
-            // A. Check for Double Bookings (Race Condition Lock)
+            // Acquire a lock to check for overlapping appointments at the exact same time
             $conflicts = Appointment::where('doctor_id', $request->doctor_id)
                 ->where('appointment_date', $request->appointment_date)
                 ->where('appointment_time', $request->appointment_time)
@@ -142,25 +168,23 @@ class AppointmentController extends Controller
                  return redirect()->back()->withInput()->with('error', 'Slot was just taken! Please choose another.');
             }
 
-            // B. Determine User ID (Find Existing or Create New)
             $userId = $request->user_id;
             
-            // If Walk-in, create the account silently
+            // Create a new user account for walk-in patients silently
             if ($request->patient_type === 'new') {
                 $newPatient = User::create([
                     'name'     => $request->new_patient_name,
                     'phone'    => $request->new_patient_phone,
-                    'email'    => null, // Walk-ins might not have email
-                    'password' => null, // No password needed yet
+                    'email'    => null, // Email is optional for walk-ins
+                    'password' => null, // Account is unverified/incomplete initially
                     'role'     => 'patient',
                 ]);
                 $userId = $newPatient->id;
             }
 
-            // C. Get Price
             $service = Service::findOrFail($request->service_id);
 
-            // D. Create the Appointment
+            // Create the confirmed appointment
             Appointment::create([
                 'user_id'          => $userId,
                 'doctor_id'        => $request->doctor_id,
@@ -169,7 +193,7 @@ class AppointmentController extends Controller
                 'appointment_date' => $request->appointment_date,
                 'appointment_time' => $request->appointment_time,
                 'duration_minutes' => $request->duration_minutes,
-                'status'           => 'confirmed' // Admin bookings are confirmed immediately
+                'status'           => 'confirmed' // Admin bookings bypass the pending state
             ]);
 
             return redirect()->route('admin.appointments.index', ['status' => 'confirmed'])
@@ -177,7 +201,13 @@ class AppointmentController extends Controller
         });
     }
     
-    // --- 4. CONFIRM ACTION ---
+    /**
+     * Mark an appointment as confirmed.
+     *
+     * @param Request $request
+     * @param int $id
+     * @return \Illuminate\Http\RedirectResponse
+     */
     public function confirm(Request $request, $id)
     {
         $appt = Appointment::findOrFail($id);
@@ -186,13 +216,20 @@ class AppointmentController extends Controller
         return redirect()->route('admin.appointments.index', $request->all())->with('success', 'Appointment confirmed.');
     }
 
-    // --- 5. COMPLETE ACTION (Revenue Recording) ---
+    /**
+     * Mark an appointment as completed.
+     * 
+     * Validates that the appointment date is not in the future before completion.
+     *
+     * @param Request $request
+     * @param int $id
+     * @return \Illuminate\Http\RedirectResponse
+     */
     public function complete(Request $request, $id) 
     {
         $appt = Appointment::findOrFail($id);
         
-        // Changed Logic: Allow marking complete if it's TODAY or PAST.
-        // Only block if the date is strictly in the future (tomorrow onwards).
+        // Prevent completing appointments scheduled for future dates
         if ($appt->appointment_date->gt(Carbon::today())) {
             return redirect()->route('admin.appointments.index', $request->all())->with('error', 'Cannot mark future appointments as completed.');
         }
@@ -201,7 +238,13 @@ class AppointmentController extends Controller
         return redirect()->route('admin.appointments.index', $request->all())->with('success', 'Appointment marked as completed.');
     }
 
-    // --- 6. CANCEL ACTION (With Audit Log) ---
+    /**
+     * Cancel an appointment and record the reason.
+     *
+     * @param Request $request
+     * @param int $id
+     * @return \Illuminate\Http\RedirectResponse
+     */
     public function cancel(Request $request, $id)
     {
         $request->validate(['cancellation_reason' => 'required|string|max:255']);
@@ -222,18 +265,25 @@ class AppointmentController extends Controller
         return redirect()->route('admin.appointments.index', $request->all())->with('success', 'Appointment cancelled.');
     }
 
-    // --- 7. SHOW DETAILS ---
+    /**
+     * Display the specified appointment.
+     *
+     * @param int $id
+     * @return \Illuminate\View\View
+     */
     public function show($id)
     {
         $appointment = Appointment::with(['patient', 'doctor', 'service', 'canceller'])->findOrFail($id);
-        
-        // Removed the block that redirects 'blocked' appointments back.
-        // We now allow viewing them to unblock or see details.
 
         return view('admin.appointments.show', compact('appointment'));
     }
 
-    // --- 8. EDIT APPOINTMENT ---
+    /**
+     * Show the form for editing the specified appointment.
+     *
+     * @param int $id
+     * @return \Illuminate\View\View
+     */
     public function edit($id)
     {
         $appointment = Appointment::with(['patient', 'doctor', 'service'])->findOrFail($id);
@@ -244,14 +294,21 @@ class AppointmentController extends Controller
         return view('admin.appointments.edit', compact('appointment', 'patients', 'doctors', 'services'));
     }
 
-    // --- 9. UPDATE APPOINTMENT ---
+    /**
+     * Update the specified appointment in storage.
+     * 
+     * Performs conflict checks to ensure the new time slot is available.
+     *
+     * @param Request $request
+     * @param int $id
+     * @return \Illuminate\Http\RedirectResponse
+     */
     public function update(Request $request, $id)
     {
         $appointment = Appointment::findOrFail($id);
 
-        // Base validation rules
         $rules = [
-            'user_id' => 'required|exists:users,id', // Assuming user_id is always present for update
+            'user_id' => 'required|exists:users,id',
             'doctor_id' => 'required|exists:users,id',
             'service_id' => 'required|exists:services,id',
             'appointment_date' => [
@@ -273,7 +330,7 @@ class AppointmentController extends Controller
         ];
         $request->validate($rules);
 
-        // Check for conflicts using the AppointmentService, excluding the current appointment
+        // Check for scheduling conflicts, excluding the current appointment from the check
         $conflicts = $this->appointmentService->checkConflicts([
             'doctor_id' => $request->doctor_id,
             'appointment_date' => $request->appointment_date,
@@ -291,7 +348,13 @@ class AppointmentController extends Controller
             ->with('success', 'Appointment updated successfully.');
     }
 
-    // --- 10. RESTORE CANCELLED APPOINTMENT ---
+    /**
+     * Restore a cancelled appointment to pending status.
+     *
+     * @param Request $request
+     * @param int $id
+     * @return \Illuminate\Http\RedirectResponse
+     */
     public function restore(Request $request, $id)
     {
         $appointment = Appointment::findOrFail($id);
@@ -311,7 +374,15 @@ class AppointmentController extends Controller
             ->with('success', 'Appointment restored successfully to pending status.');
     }
 
-    // --- 12. Get Available Slots (AJAX) ---
+    /**
+     * Retrieve available time slots for a specific doctor and date via AJAX.
+     * 
+     * Iterates through the doctor's schedule to find open blocks of time,
+     * checking for conflicts with existing appointments.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function getAvailableSlots(Request $request)
     {
         $doctorId = $request->input('doctor_id');
@@ -323,10 +394,12 @@ class AppointmentController extends Controller
         }
 
         $slots = [];
+        // Retrieve the doctor's specific schedule for the day
         $schedule = \App\Models\Schedule::where('doctor_id', $doctorId)
             ->where('date', $date->toDateString())
             ->first();
 
+        // Fallback: If no specific schedule, assume default hours unless it's Sunday
         if (!$schedule) {
             if ($date->isSunday()) {
                 return response()->json(['message' => 'Doctor is not available on Sundays.'], 200);
@@ -341,12 +414,14 @@ class AppointmentController extends Controller
         $scheduleStartTime = Carbon::parse($schedule->start_time);
         $scheduleEndTime = Carbon::parse($schedule->end_time);
 
+        // Check if the doctor is marked as "Day Off"
         if ($scheduleStartTime->format('H:i') === '00:00' && $scheduleEndTime->format('H:i') === '00:00') {
             return response()->json(['message' => 'Doctor is on a day off.'], 200);
         }
 
         $currentTime = $scheduleStartTime->copy();
         
+        // Generate slots
         while ($currentTime->lt($scheduleEndTime)) {
             $slotEndTime = $currentTime->copy()->addMinutes($selectedDuration);
 
@@ -361,6 +436,7 @@ class AppointmentController extends Controller
                 'duration_minutes' => $selectedDuration,
             ];
 
+            // Verify if the slot is free from conflicts
             $conflicts = $this->appointmentService->checkConflicts($potentialAppointmentData);
 
             if (empty($conflicts)) {
@@ -375,18 +451,24 @@ class AppointmentController extends Controller
         return response()->json(['slots' => $slots]);
     }
 
-
-    // --- 11. BLOCK SLOT (Ajax for Calendar) ---
+    /**
+     * Block or unblock a specific time slot (AJAX).
+     * 
+     * Uses a dummy appointment with status 'blocked' to reserve the slot.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function blockSlot(Request $request)
     {
         if ($request->status === 'reserved') {
-            // Find a dummy service ID (since service_id is not nullable)
+            // Create a blocking appointment to reserve the time
             $serviceId = \App\Models\Service::first()->id ?? 1;
 
             Appointment::create([
                 'doctor_id' => $request->doctor_id,
-                'user_id'   => $request->doctor_id, // Doctor "owns" the block
-                'service_id' => $serviceId,         // Dummy service
+                'user_id'   => $request->doctor_id, // The doctor "owns" the blocked slot
+                'service_id' => $serviceId,         // Placeholder service
                 'appointment_date' => $request->date,
                 'appointment_time' => $request->time,
                 'status' => 'blocked', 
@@ -394,7 +476,7 @@ class AppointmentController extends Controller
                 'price' => 0
             ]);
         } else {
-            // Unblock
+            // Remove the block
             Appointment::where('doctor_id', $request->doctor_id)
                 ->where('appointment_date', $request->date)
                 ->where('appointment_time', $request->time)

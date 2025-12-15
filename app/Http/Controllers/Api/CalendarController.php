@@ -8,18 +8,34 @@ use App\Models\Appointment;
 use App\Models\Schedule;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
-use App\Services\ScheduleService; // Import the service
+use App\Services\ScheduleService; 
 
+/**
+ * Handles JSON data requests for the FullCalendar implementation.
+ * 
+ * Provides endpoints for fetching events (appointments/availability) and 
+ * detailed slot information for specific dates.
+ */
 class CalendarController extends Controller
 {
-    protected $scheduleService; // Declare the property
+    protected $scheduleService; 
 
-    public function __construct(ScheduleService $scheduleService) // Inject the service
+    public function __construct(ScheduleService $scheduleService)
     {
         $this->scheduleService = $scheduleService;
     }
 
-    // 1. CALENDAR EVENTS
+    /**
+     * Retrieve calendar events for a specific date range.
+     * 
+     * Handles two distinct modes:
+     * 1. Aggregate View (All Doctors): Returns a summary of appointment counts per day.
+     * 2. Single Doctor View: Returns specific availability blocks, day-offs, and appointment counts.
+     *    Uses the ScheduleService to generate "virtual" schedules if explicit ones don't exist.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function getEvents(Request $request)
     {
         $start = Carbon::parse($request->start);
@@ -28,7 +44,7 @@ class CalendarController extends Controller
 
         $events = [];
 
-        // --- ALL DOCTORS VIEW ---
+        // Mode 1: Aggregate View for Admins (Summary of all activity)
         if ($doctorId === 'all') {
             $counts = Appointment::whereBetween('appointment_date', [$start, $end])
                 ->where('status', '!=', 'cancelled')
@@ -40,7 +56,7 @@ class CalendarController extends Controller
             foreach ($counts as $row) {
                 $events[] = [
                     'title' => $row->count . " Patient(s)",
-                    'start' => $row->appointment_date, // Already Y-m-d from database or cast
+                    'start' => $row->appointment_date, 
                     'backgroundColor' => '#4e73df',
                     'borderColor' => '#4e73df',
                     'textColor' => '#ffffff',
@@ -49,8 +65,8 @@ class CalendarController extends Controller
             return response()->json($events);
         }
 
-        // --- SINGLE DOCTOR VIEW ---
-        // Fetch SAVED overrides
+        // Mode 2: Single Doctor View
+        // Retrieve explicit schedule overrides for the requested period
         $savedSchedules = Schedule::whereBetween('date', [$start, $end])
             ->where('doctor_id', $doctorId)
             ->get()
@@ -58,17 +74,18 @@ class CalendarController extends Controller
 
         $isPatient = Auth::check() && Auth::user()->role === 'patient';
 
-        // Iterate through every day in the range to generate Virtual or Real events
+        // Iterate through each day to build the calendar events
         $curr = $start->copy();
         while ($curr <= $end) {
             $dateStr = $curr->format('Y-m-d');
             
-            // Use ScheduleService to get the schedule (real or virtual)
+            // Retrieve the effective schedule (saved or default virtual)
             $actualSchedule = $this->scheduleService->getDoctorSchedule($dateStr, $doctorId);
 
-            if (!$actualSchedule) { // If no actual or virtual schedule (e.g., Sunday)
+            if (!$actualSchedule) { 
+                // No schedule available (e.g., Sunday with no override)
                 $curr->addDay();
-                continue; // Skip and don't add an event
+                continue; 
             }
 
             $startT = Carbon::parse($actualSchedule->start_time);
@@ -78,7 +95,7 @@ class CalendarController extends Controller
             $title = '';
             $color = '';
             $textColor = '';
-            $id = $savedSchedules->get($dateStr)->id ?? 'virtual-' . $dateStr; // Use actual schedule ID if exists
+            $id = $savedSchedules->get($dateStr)->id ?? 'virtual-' . $dateStr; 
 
             if ($isDayOff) {
                 $title = "DAY OFF";
@@ -92,10 +109,10 @@ class CalendarController extends Controller
                 $count = Appointment::whereDate('appointment_date', $dateStr)
                     ->where('doctor_id', $doctorId)
                     ->where('status', '!=', 'cancelled')
-                    ->where('status', '!=', 'blocked') // Exclude blocked slots from count
+                    ->where('status', '!=', 'blocked')
                     ->count();
                 
-                // SKIP IF 0 PATIENTS (Don't clutter calendar)
+                // For admin/doctor view, only show the event if there are patients or it's a specific status
                 if ($count == 0 && !$isDayOff) {
                     $curr->addDay();
                     continue;
@@ -124,13 +141,21 @@ class CalendarController extends Controller
         return response()->json($events);
     }
 
-    // 2. SLOT DETAILS
+    /**
+     * Retrieve detailed information for a specific day.
+     * 
+     * Returns a list of appointments (for admins) or a list of available
+     * time slots (for booking).
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function getDayDetails(Request $request)
     {
         $date = $request->date;
         $doctorId = $request->doctor_id;
 
-        // --- ALL DOCTORS LIST ---
+        // Detail View for "All Doctors": List all appointments for the day
         if ($doctorId === 'all') {
             $appointments = Appointment::with(['patient', 'doctor', 'service'])
                 ->whereDate('appointment_date', $date)
@@ -155,7 +180,8 @@ class CalendarController extends Controller
             ]);
         }
 
-        $durationMinutes = $request->duration_minutes ?? 30; // Default to 30 min if not provided
+        // Detail View for Single Doctor: Generate Time Slots
+        $durationMinutes = $request->duration_minutes ?? 30; 
         $excludeAppointmentId = $request->exclude_appointment_id ?? null;
 
         $slotsData = $this->scheduleService->generateTimeSlots($date, $doctorId, (int)$durationMinutes, (int)$excludeAppointmentId);

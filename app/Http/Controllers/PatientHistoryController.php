@@ -4,8 +4,17 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Appointment;
 
+/**
+ * Manages the full history of appointments for a logged-in patient.
+ */
 class PatientHistoryController extends Controller
 {
+    /**
+     * Display a paginated, searchable list of the patient's appointment history.
+     *
+     * @param Request $request
+     * @return \Illuminate\View\View
+     */
     public function index(Request $request)
     {
         $search = $request->get('search');
@@ -30,17 +39,30 @@ class PatientHistoryController extends Controller
         return view('patient.history.index', compact('appointments', 'search'));
     }
 
+    /**
+     * Cancel a pending appointment.
+     * 
+     * Policy enforcement: Patients are only allowed to self-cancel appointments
+     * that are still in 'pending' status. Confirmed appointments must be cancelled
+     * by contacting the clinic directly to minimize schedule disruption.
+     *
+     * @param int $id
+     * @return \Illuminate\Http\RedirectResponse
+     */
     public function cancel($id)
     {
         $appt = Appointment::where('id', $id)->where('user_id', Auth::id())->firstOrFail();
+        
         if ($appt->status != 'pending') {
             return back()->with('error', 'Only pending appointments can be cancelled.');
         }
+        
         $appt->update([
             'status' => 'cancelled', 
             'cancellation_reason' => 'Patient requested cancellation',
             'cancelled_by' => Auth::id()
         ]);
+        
         return back()->with('success', 'Appointment cancelled.');
     }
 }

@@ -8,17 +8,29 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\Appointment;
 use Carbon\Carbon;
 
+/**
+ * Manages the main workspace for doctors.
+ * 
+ * Provides an overview of daily appointments, patient queues, and quick actions
+ * for consultation management.
+ */
 class DoctorDashboardController extends Controller
 {
     /**
      * Show the Doctor's Dashboard (Agenda).
+     * 
+     * Aggregates key metrics for the doctor:
+     * - Today's entire appointment list (confirmed, pending, and completed).
+     * - A preview of the upcoming week's schedule load.
+     * - The "Up Next" patient, identifying the earliest confirmed appointment that hasn't started yet.
+     * - The doctor's specific working hours for the current day.
      */
     public function index()
     {
         $doctorId = Auth::id();
         $today = Carbon::today();
 
-        // 1. Get Today's Appointments (All)
+        // Retrieve all appointments scheduled for the current day
         $todaysAppointments = Appointment::with(['patient', 'service'])
             ->where('doctor_id', $doctorId)
             ->whereDate('appointment_date', $today)
@@ -26,7 +38,7 @@ class DoctorDashboardController extends Controller
             ->orderBy('appointment_time')
             ->get();
 
-        // 2. Upcoming List (Next 7 Days)
+        // Calculate the volume of confirmed appointments for the next 7 days
         $upcomingAppointments = Appointment::with(['patient', 'service'])
             ->where('doctor_id', $doctorId)
             ->where('appointment_date', '>', $today)
@@ -38,12 +50,12 @@ class DoctorDashboardController extends Controller
             
         $upcomingCount = $upcomingAppointments->count();
 
-        // 3. IDENTIFY "UP NEXT" (First confirmed, not completed)
-        // We look for the first one that is 'confirmed' and time is >= now (or just the first confirmed in the sorted list that isn't completed)
-        // Simplification: Just take the first 'confirmed' one from today's list that matches time
+        // Identify the "Up Next" patient logic:
+        // Simply grabs the first appointment in today's list that is marked 'confirmed'.
+        // Since the list is already sorted by time, this will be the earliest confirmed slot.
         $nextPatient = $todaysAppointments->where('status', 'confirmed')->first(); 
         
-        // 4. Get Today's Working Hours
+        // Fetch the doctor's schedule configuration for today (start/end times)
         $schedule = \App\Models\Schedule::where('doctor_id', $doctorId)
             ->where('date', $today)
             ->first();
@@ -174,8 +186,11 @@ class DoctorDashboardController extends Controller
 
     /**
      * Save Medical Notes / Diagnosis.
+     * 
+     * Updates the appointment with the doctor's findings and prescription.
+     * Automatically transitions the appointment status to 'completed' upon save.
      */
-    public function updateDiagnosis(Request $request, Appointment $appointment) // Using Route Model Binding
+    public function updateDiagnosis(Request $request, Appointment $appointment) 
     {
         $request->validate([
             'diagnosis' => 'required|string|min:5',
@@ -190,7 +205,7 @@ class DoctorDashboardController extends Controller
         $appointment->update([
             'diagnosis' => $request->diagnosis,
             'prescription' => $request->prescription,
-            'status' => 'completed' // Auto-complete the appointment when notes are added
+            'status' => 'completed' // Auto-complete when notes are added
         ]);
 
         return back()->with('success', 'Consultation notes saved successfully.');
