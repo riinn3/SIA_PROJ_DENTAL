@@ -6,13 +6,28 @@ use App\Models\Appointment;
 
 class PatientHistoryController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $appointments = Appointment::where('user_id', Auth::id())
+        $search = $request->get('search');
+
+        $query = Appointment::where('user_id', Auth::id())
             ->with(['doctor', 'service'])
-            ->orderBy('appointment_date', 'desc')
-            ->paginate(10);
-        return view('patient.history.index', compact('appointments'));
+            ->orderBy('appointment_date', 'desc');
+
+        if ($search) {
+            $query->where(function($q) use ($search) {
+                $q->whereHas('service', function($sub) use ($search) {
+                    $sub->where('name', 'like', "%{$search}%");
+                })
+                ->orWhereHas('doctor', function($sub) use ($search) {
+                    $sub->where('name', 'like', "%{$search}%");
+                });
+            });
+        }
+
+        $appointments = $query->paginate(10)->withQueryString();
+        
+        return view('patient.history.index', compact('appointments', 'search'));
     }
 
     public function cancel($id)

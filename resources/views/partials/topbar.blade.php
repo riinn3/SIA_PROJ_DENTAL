@@ -5,9 +5,8 @@
     </button>
 
     {{-- CLINIC NAME HEADER --}}
-    <div class="d-none d-sm-inline-block form-inline mr-auto navbar-brand text-white rounded-pill px-4 py-2 font-weight-bold" 
-        style="letter-spacing: 0.5px; font-size: 1.1rem;">
-        <i class="fas fa-tooth mr-2"></i> Ponce Miranda Dental
+    <div class="d-none d-sm-inline-block form-inline mr-auto navbar-brand rounded-pill px-4 py-2 font-weight-bold"         style="font-size: 1rem; background-color: transparent; color: white !important;">
+        <img src="{{ asset('poce.jpg') }}" alt="Logo" height="30" class="mr-2 rounded-circle"> Ponce Miranda Dental
     </div>
 
     <ul class="navbar-nav ml-auto">

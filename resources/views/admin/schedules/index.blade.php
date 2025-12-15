@@ -144,9 +144,19 @@
     document.addEventListener('DOMContentLoaded', function() {
         var calendarEl = document.getElementById('calendar');
         var doctorSelect = document.getElementById('doctorFilter');
+        
+        // 1. Check URL Params for State Restoration
+        const urlParams = new URLSearchParams(window.location.search);
+        const preDoctor = urlParams.get('doctor_id');
+        const preDate = urlParams.get('date');
+
+        if(preDoctor) {
+            doctorSelect.value = preDoctor;
+        }
 
         calendar = new FullCalendar.Calendar(calendarEl, {
             initialView: 'dayGridMonth',
+            initialDate: preDate ? preDate : new Date(), // Restore Month
             headerToolbar: { left: 'prev,next', center: 'title', right: '' },
             height: 500,
             validRange: { start: new Date().toISOString().split('T')[0] },
@@ -172,6 +182,17 @@
         });
 
         calendar.render();
+
+        // 2. Restore Selection if params exist
+        if(preDoctor && preDate) {
+            currentDoctorId = preDoctor;
+            currentSelectedDate = preDate;
+            document.getElementById('selectedDateLabel').innerText = new Date(preDate).toDateString();
+            
+            // Highlight the day (tricky in FC after render, but we try)
+            // We can't easily find the element without dateClick, but we can load the side panel.
+            fetchDayDetails();
+        }
 
         doctorSelect.addEventListener('change', function() {
             calendar.refetchEvents();
@@ -241,13 +262,16 @@
                         html += `<div class="slot-row bg-light"><div class="slot-time text-muted">${slot.time_label}</div><div class="slot-status text-muted">BOOKED</div><span class="badge badge-secondary"><i class="fas fa-lock"></i></span></div>`;
                 } else {
                     let isBlocked = (slot.type === 'blocked');
+                    // CHANGED: Single button toggle instead of radio group
                     html += `
                         <div class="slot-row ${isBlocked ? 'status-blocked' : 'status-open'}">
                             <div class="slot-time">${slot.time_label}</div>
-                            <div class="btn-group btn-group-sm btn-group-toggle shadow-sm" data-toggle="buttons" style="border-radius: 20px; overflow: hidden;">
-                                <label class="btn btn-white border ${!isBlocked ? 'active text-success font-weight-bold' : 'text-muted'}" onclick="updateBlockStatus('${slot.raw_time}', 'available')"><input type="radio"> Open</label>
-                                <label class="btn btn-white border ${isBlocked ? 'active text-danger font-weight-bold' : 'text-muted'}" onclick="updateBlockStatus('${slot.raw_time}', 'reserved')"><input type="radio"> Block</label>
-                            </div>
+                            <div class="slot-status">${isBlocked ? 'BLOCKED' : 'Available'}</div>
+                            
+                            ${isBlocked 
+                                ? `<button class="btn btn-sm btn-outline-secondary shadow-sm" onclick="updateBlockStatus('${slot.raw_time}', 'available')">Unblock</button>`
+                                : `<button class="btn btn-sm btn-danger shadow-sm" onclick="updateBlockStatus('${slot.raw_time}', 'reserved')">Block</button>`
+                            }
                         </div>`;
                 }
             } else {
@@ -258,13 +282,14 @@
                     <div class="slot-row status-booked">
                         <div class="slot-time">${slot.time_label}</div>
                         <div class="slot-status">Booked</div>
-                        <a href="/admin/appointments/${slot.appt_id}" class="btn btn-sm btn-circle btn-danger shadow-sm"><i class="fas fa-eye"></i></a>
+                        <a href="/admin/appointments/${slot.appt_id}?from=calendar&doctor_id=${currentDoctorId}&date=${currentSelectedDate}" class="btn btn-sm btn-circle btn-danger shadow-sm"><i class="fas fa-eye"></i></a>
                     </div>`;
                 } else if (slot.type === 'blocked') {
                     html += `
                     <div class="slot-row status-blocked">
                         <div class="slot-time">${slot.time_label}</div>
                         <div class="slot-status">Blocked</div>
+                        <button class="btn btn-sm btn-outline-secondary shadow-sm mr-2" onclick="updateBlockStatus('${slot.raw_time}', 'available')">Unblock</button>
                     </div>`;
                 } else {
                     // LINK FIX: Now uses slot.raw_date correctly
@@ -314,11 +339,22 @@
     }
 
     function updateBlockStatus(time, status) {
+        // Show loading or disable buttons could be added here
         fetch("{{ route('admin.appointments.block') }}", {
             method: "POST",
             headers: { "Content-Type": "application/json", "X-CSRF-TOKEN": "{{ csrf_token() }}" },
             body: JSON.stringify({ doctor_id: currentDoctorId, date: currentSelectedDate, time: time, status: status })
-        });
+        })
+        .then(response => response.json())
+        .then(data => {
+            if(data.success) {
+                fetchDayDetails(); // Refresh the list to show new status
+                calendar.refetchEvents(); // Refresh calendar to show day color changes
+            } else {
+                alert("Failed to update slot.");
+            }
+        })
+        .catch(err => console.error(err));
     }
 </script>
 @endpush

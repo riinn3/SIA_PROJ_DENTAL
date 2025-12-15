@@ -3,9 +3,15 @@
 @section('content')
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1 class="h3 mb-0 text-gray-800">Appointment Details</h1>
-    <a href="{{ route('admin.appointments.index', request()->query()) }}" class="btn btn-secondary shadow-sm rounded-pill px-4">
-        <i class="fas fa-arrow-left mr-1"></i> Back to List
-    </a>
+    @if(request('from') === 'calendar')
+        <a href="{{ route('admin.schedules.index', ['doctor_id' => request('doctor_id'), 'date' => request('date')]) }}" class="btn btn-secondary shadow-sm rounded-pill px-4">
+            <i class="fas fa-arrow-left mr-1"></i> Back to Schedule
+        </a>
+    @else
+        <a href="{{ route('admin.appointments.index', request()->query()) }}" class="btn btn-secondary shadow-sm rounded-pill px-4">
+            <i class="fas fa-arrow-left mr-1"></i> Back to List
+        </a>
+    @endif
 </div>
 
 <div class="row justify-content-center">

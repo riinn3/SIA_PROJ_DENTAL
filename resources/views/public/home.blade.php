@@ -1,3 +1,5 @@
+@extends('layouts.guest')
+
 @section('content')
 <div class="container-fluid p-0">
     

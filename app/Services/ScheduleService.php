@@ -63,15 +63,18 @@ class ScheduleService
         $bookings = $bookingsQuery->get(); // Get the bookings first
 
         // Prepare raw appointments list for the frontend (for display purposes)
+        // EXCLUDE 'blocked' slots from the patient list
         $isDoctorOrAdmin = Auth::check() && (Auth::user()->role === 'doctor' || Auth::user()->role === 'admin');
-        $rawAppointments = $bookings->map(function($appt) use ($isDoctorOrAdmin) {
+        $rawAppointments = $bookings->filter(function($appt) {
+            return $appt->status !== 'blocked';
+        })->map(function($appt) use ($isDoctorOrAdmin) {
             return [
                 'id' => $appt->id,
                 'time' => Carbon::parse($appt->appointment_time)->format('h:i A'),
                 'patient_name' => $isDoctorOrAdmin ? ($appt->patient->name ?? 'Unknown') : 'Booked',
                 'service' => $appt->service->name ?? '-'
             ];
-        });
+        })->values(); // Reset keys after filter
 
         // Handle cases where no schedule or day off
         if (!$schedule || (Carbon::parse($schedule->start_time)->format('H:i') === '00:00' && Carbon::parse($schedule->end_time)->format('H:i') === '00:00')) {
@@ -121,8 +124,14 @@ class ScheduleService
                 $apptEnd = $apptStart->copy()->addMinutes((int)$appt->duration_minutes); // Explicitly cast to int
 
                 if ($slotStart >= $apptStart && $slotStart < $apptEnd) {
-                    $slotStatus = 'booked';
-                    $slotDetails = $isDoctorOrAdmin ? ($appt->patient->name ?? 'Unknown Patient') : 'Booked';
+                    // Check specifically for BLOCKED status
+                    if ($appt->status === 'blocked') {
+                        $slotStatus = 'blocked';
+                        $slotDetails = 'Blocked';
+                    } else {
+                        $slotStatus = 'booked';
+                        $slotDetails = $isDoctorOrAdmin ? ($appt->patient->name ?? 'Unknown Patient') : 'Booked';
+                    }
                     $apptId = $appt->id; 
                     break; 
                 }

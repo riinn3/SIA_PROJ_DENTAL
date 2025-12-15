@@ -27,7 +27,7 @@ class ReportController extends Controller
             ->where('appointments.status', 'completed')
             ->whereBetween('appointment_date', [$start, $end])
             ->join('services', 'appointments.service_id', '=', 'services.id')
-            ->select('services.name', DB::raw('count(*) as count'), DB::raw('sum(services.price) as revenue'))
+            ->select('services.name', DB::raw('count(*) as count'), DB::raw('sum(appointments.price) as revenue'))
             ->groupBy('services.name')
             ->orderByDesc('revenue')
             ->get();
@@ -38,7 +38,7 @@ class ReportController extends Controller
             ->whereBetween('appointment_date', [$start, $end])
             ->join('users', 'appointments.doctor_id', '=', 'users.id')
             ->join('services', 'appointments.service_id', '=', 'services.id')
-            ->select('users.name', DB::raw('count(*) as count'), DB::raw('sum(services.price) as revenue'))
+            ->select('users.name', DB::raw('count(*) as count'), DB::raw('sum(appointments.price) as revenue'))
             ->groupBy('users.name')
             ->orderByDesc('count')
             ->get();
@@ -53,7 +53,7 @@ class ReportController extends Controller
         $stats = [
             'total_completed' => $completedAppts->count(),
             'total_cancelled' => $cancelledAppts->count(),
-            'revenue' => $completedAppts->sum(fn($a) => $a->service->price)
+            'revenue' => $completedAppts->sum('price')
         ];
 
         return view('admin.reports.index', compact(

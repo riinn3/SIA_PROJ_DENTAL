@@ -11,6 +11,8 @@ class PatientController extends Controller
     // In app/Http/Controllers/PatientController.php
     public function index(Request $request)
     {
+        $view = $request->get('view', 'all'); // Default to 'all' or 'active'? Let's default to 'all' as requested "add all patient" might imply it's important. Or stick to 'active'. Let's default to 'active' to match UI, but maybe user wants 'all' as default. Let's keep 'active' default for now but support 'all'.
+        // Actually, let's make 'all' the default if that's what usually expected. But I'll stick to 'active' default to avoid changing startup behavior unless asked.
         $view = $request->get('view', 'active');
         $search = $request->get('search');
 
@@ -25,17 +27,21 @@ class PatientController extends Controller
             });
         }
 
-        // --- LOGIC FIXES ---
-        if ($view === 'pending') {
+        if ($view === 'all') {
+            // ALL: Every non-archived patient
+            $patients = $query->withCount('appointments')
+                              ->orderBy('name')
+                              ->paginate(10);
+
+        } elseif ($view === 'pending') {
             // PENDING: Has an email, but hasn't verified it yet.
-            // Exclude Walk-ins (who have null email)
             $patients = $query->whereNull('email_verified_at')
                             ->whereNotNull('email') 
                             ->orderBy('created_at', 'desc')
                             ->paginate(10);
 
         } elseif ($view === 'walkin') {
-            // WALK-IN: Patients with NO email address (manually created)
+            // WALK-IN: Patients with NO email address
             $patients = $query->whereNull('email')
                             ->orderBy('created_at', 'desc')
                             ->paginate(10);
@@ -46,34 +52,58 @@ class PatientController extends Controller
                             ->where('role', 'patient')
                             ->paginate(10);
 
-        } else {
-            // ACTIVE: Verified Email OR Walk-ins (since they don't need verification)
-            // This is your main list.
-            $patients = $query->where(function($q) {
-                    $q->whereNotNull('email_verified_at') // Verified Online Users
-                    ->orWhereNull('email');             // Walk-in Patients
-                })
-                ->withCount('appointments') // Eager load count
-                ->orderBy('name')
-                ->paginate(10);
+        } else { // 'active'
+            // ONLINE / ACTIVE: Verified Email Users
+            $patients = $query->whereNotNull('email_verified_at')
+                            ->withCount('appointments')
+                            ->orderBy('name')
+                            ->paginate(10);
         }
 
         return view('admin.patients.index', compact('patients', 'search', 'view'));
     }
 
     // 2. SHOW & EDIT (These make your buttons work)
-    public function show($id)
-{
-    // 1. Find the patient
-    $patient = User::with(['appointments', 'appointments.doctor', 'appointments.service'])->findOrFail($id);
-    
-    // 2. FIX: Calculate the current status based on their latest appointment
-    $lastAppt = $patient->appointments()->latest()->first();
-    $currentStatus = $lastAppt ? $lastAppt->status : 'New';
+    public function show(Request $request, $id)
+    {
+        // 1. Find the patient
+        $patient = User::findOrFail($id);
+        
+        // 2. Filter Parameters for Appointments Tab
+        $status = $request->get('status', 'all'); // 'all', 'incoming', 'completed', 'cancelled'
+        $search = $request->get('search');
 
-    // 3. Pass it to the view
-    return view('admin.patients.show', compact('patient', 'currentStatus'));
-}
+        // 3. Build Appointments Query
+        $query = $patient->appointments()->with(['doctor', 'service'])->orderBy('appointment_date', 'desc');
+
+        if ($status !== 'all') {
+            if ($status === 'incoming') {
+                $query->whereIn('status', ['pending', 'confirmed']);
+            } else {
+                $query->where('status', $status);
+            }
+        }
+
+        if ($search) {
+            $query->where(function($q) use ($search) {
+                $q->whereHas('doctor', function($sub) use ($search) {
+                    $sub->where('name', 'like', "%{$search}%");
+                })
+                ->orWhereHas('service', function($sub) use ($search) {
+                    $sub->where('name', 'like', "%{$search}%");
+                });
+            });
+        }
+
+        $appointments = $query->paginate(5);
+        
+        // 4. Calculate current status for the tab highlight (can differ from filter)
+        // Actually, let's use the filter status for the tab.
+        $currentStatus = $status;
+
+        return view('admin.patients.show', compact('patient', 'appointments', 'search', 'currentStatus'));
+    }
+
     public function edit($id)
     {
         $patient = User::where('role', 'patient')->findOrFail($id);
@@ -85,11 +115,23 @@ class PatientController extends Controller
         $patient = User::findOrFail($id);
         $request->validate([
             'name' => 'required|string|max:255',
-            'email' => ['required', 'email', Rule::unique('users')->ignore($patient->id)],
-            'phone' => 'nullable|numeric|digits:11', // Added phone validation
+            'email' => ['nullable', 'email', Rule::unique('users')->ignore($patient->id)],
+            'phone' => ['nullable', 'regex:/^09\d{9}$/'], 
         ]);
-        $patient->update($request->all());
-        return redirect()->route('admin.patients.show', $id)->with('success', 'Updated.');
+
+        $patient->fill($request->all());
+
+        if ($patient->isDirty('email')) {
+            $patient->email_verified_at = null;
+            
+            if ($patient->email) {
+                $patient->sendEmailVerificationNotification();
+            }
+        }
+
+        $patient->save();
+
+        return redirect()->route('admin.patients.show', $id)->with('success', 'Patient details updated successfully.');
     }
 
     // 3. ARCHIVE ACTIONS
@@ -116,7 +158,7 @@ class PatientController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
-            'phone' => 'nullable|numeric|digits:11', // Updated phone validation
+            'phone' => ['nullable', 'regex:/^09\d{9}$/'], // Updated phone validation
             'password' => 'required|string|min:8',
         ]);
 

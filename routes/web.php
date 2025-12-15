@@ -24,7 +24,7 @@ use App\Http\Controllers\Doctor\DoctorScheduleController;
 */
 
 // 1. THE HOME PAGE
-Route::get('/login', [PublicController::class, 'index'])->name('home');
+Route::get('/', [PublicController::class, 'index'])->name('public.home');
 
 // 2. OTHER PUBLIC PAGES
 Route::get('/services', [PublicController::class, 'services'])->name('services.public.index');

@@ -1,8 +1,32 @@
 @extends('layouts.admin')
 @section('content')
+
+@if (session('success'))
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        {{ session('success') }}
+        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+        </button>
+    </div>
+@endif
+
+@if (session('error'))
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        {{ session('error') }}
+        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+        </button>
+    </div>
+@endif
+
 <div class="d-flex justify-content-between mb-4">
     <h1 class="h3 text-gray-800">Patient Profile: {{ $patient->name }}</h1>
-    <a href="{{ route('admin.patients.index') }}" class="btn btn-secondary">Back</a>
+    <div>
+        <a href="{{ route('admin.patients.edit', $patient->id) }}" class="btn btn-primary shadow-sm rounded-pill px-4 mr-2">
+            <i class="fas fa-edit mr-1"></i> Edit Profile
+        </a>
+        <a href="{{ route('admin.patients.index') }}" class="btn btn-secondary shadow-sm rounded-pill px-4">Back</a>
+    </div>
 </div>
 
 <div class="row">
@@ -39,16 +63,16 @@
                 <h6 class="m-0 font-weight-bold">Appointment History</h6>
                 <ul class="nav nav-pills card-header-pills">
                     <li class="nav-item">
-                        <a class="nav-link {{ $currentStatus == 'all' ? 'active' : '' }}" href="{{ route('admin.patients.show', ['patient' => $patient->id, 'status' => 'all']) }}">All</a>
+                        <a class="nav-link {{ $currentStatus == 'all' ? 'active' : '' }}" href="{{ route('admin.patients.show', ['id' => $patient->id, 'status' => 'all']) }}">All</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {{ $currentStatus == 'incoming' ? 'active' : '' }}" href="{{ route('admin.patients.show', ['patient' => $patient->id, 'status' => 'incoming']) }}">Incoming</a>
+                        <a class="nav-link {{ $currentStatus == 'incoming' ? 'active' : '' }}" href="{{ route('admin.patients.show', ['id' => $patient->id, 'status' => 'incoming']) }}">Incoming</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {{ $currentStatus == 'completed' ? 'active' : '' }}" href="{{ route('admin.patients.show', ['patient' => $patient->id, 'status' => 'completed']) }}">Completed</a>
+                        <a class="nav-link {{ $currentStatus == 'completed' ? 'active' : '' }}" href="{{ route('admin.patients.show', ['id' => $patient->id, 'status' => 'completed']) }}">Completed</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {{ $currentStatus == 'cancelled' ? 'active bg-danger text-white' : 'text-danger' }}" href="{{ route('admin.patients.show', ['patient' => $patient->id, 'status' => 'cancelled']) }}">Cancelled</a>
+                        <a class="nav-link {{ $currentStatus == 'cancelled' ? 'active bg-danger text-white' : 'text-danger' }}" href="{{ route('admin.patients.show', ['id' => $patient->id, 'status' => 'cancelled']) }}">Cancelled</a>
                     </li>
                 </ul>
             </div>
@@ -64,7 +88,7 @@
                         </div>
                     </div>
                     @if($search)
-                        <a href="{{ route('admin.patients.show', ['patient' => $patient->id, 'status' => $currentStatus]) }}" class="btn btn-secondary rounded-pill px-3">Reset</a>
+                        <a href="{{ route('admin.patients.show', ['id' => $patient->id, 'status' => $currentStatus]) }}" class="btn btn-secondary rounded-pill px-3">Reset</a>
                     @endif
                 </form>
                 <div class="table-responsive">

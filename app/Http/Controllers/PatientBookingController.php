@@ -13,7 +13,22 @@ class PatientBookingController extends Controller
     // LOAD THE SINGLE PAGE WIZARD
     public function create()
     {
-        $services = Service::orderBy('name')->get();
+        $allServices = Service::orderBy('name')->get();
+        
+        // Prioritize "Teeth Cleaning" and "Teeth Extraction"
+        $popular = $allServices->filter(function($s) {
+            return in_array($s->name, ['Teeth Cleaning', 'Teeth Extraction']);
+        })->sortBy(function($s) {
+            // Force specific order
+            return $s->name === 'Teeth Cleaning' ? 0 : 1;
+        });
+
+        $others = $allServices->reject(function($s) {
+            return in_array($s->name, ['Teeth Cleaning', 'Teeth Extraction']);
+        });
+        
+        $services = $popular->merge($others);
+
         // Load doctors with their schedules to (optionally) filter later
         $doctors = User::where('role', 'doctor')->get();
 

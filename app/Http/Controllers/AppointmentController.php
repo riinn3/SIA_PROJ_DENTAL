@@ -43,7 +43,8 @@ class AppointmentController extends Controller
         $query = Appointment::with(['patient', 'doctor', 'service']);
 
         if ($date) {
-            $query->whereDate('appointment_date', $date);
+            $query->whereDate('appointment_date', $date)
+                  ->where('status', '!=', 'blocked'); // Exclude blocked slots
         } else {
             $query->where('status', $status);
             if ($startDate && $endDate) {
@@ -111,7 +112,7 @@ class AppointmentController extends Controller
         } else {
             // New Walk-in patient must provide name and phone
             $rules['new_patient_name']  = 'required|string|max:255';
-            $rules['new_patient_phone'] = 'required|string|max:20';
+            $rules['new_patient_phone'] = ['required', 'regex:/^09\d{9}$/'];
         }
 
         // 3. Run Validation (Now $rules is guaranteed to exist)
@@ -180,9 +181,10 @@ class AppointmentController extends Controller
     public function complete(Request $request, $id) 
     {
         $appt = Appointment::findOrFail($id);
-        $appointmentDateTime = $appt->appointment_date->setTimeFromTimeString($appt->appointment_time);
-
-        if ($appointmentDateTime->isFuture()) {
+        
+        // Changed Logic: Allow marking complete if it's TODAY or PAST.
+        // Only block if the date is strictly in the future (tomorrow onwards).
+        if ($appt->appointment_date->gt(Carbon::today())) {
             return redirect()->route('admin.appointments.index', $request->all())->with('error', 'Cannot mark future appointments as completed.');
         }
 
@@ -216,9 +218,8 @@ class AppointmentController extends Controller
     {
         $appointment = Appointment::with(['patient', 'doctor', 'service', 'canceller'])->findOrFail($id);
         
-        if($appointment->status === 'blocked') {
-            return back()->with('info', 'This is a manual administrative block.');
-        }
+        // Removed the block that redirects 'blocked' appointments back.
+        // We now allow viewing them to unblock or see details.
 
         return view('admin.appointments.show', compact('appointment'));
     }
@@ -370,14 +371,18 @@ class AppointmentController extends Controller
     public function blockSlot(Request $request)
     {
         if ($request->status === 'reserved') {
+            // Find a dummy service ID (since service_id is not nullable)
+            $serviceId = \App\Models\Service::first()->id ?? 1;
+
             Appointment::create([
                 'doctor_id' => $request->doctor_id,
+                'user_id'   => $request->doctor_id, // Doctor "owns" the block
+                'service_id' => $serviceId,         // Dummy service
                 'appointment_date' => $request->date,
                 'appointment_time' => $request->time,
                 'status' => 'blocked', 
-                'duration_minutes' => 60, 
-                'service_id' => null,  
-                'user_id' => null      
+                'duration_minutes' => 30, 
+                'price' => 0
             ]);
         } else {
             // Unblock

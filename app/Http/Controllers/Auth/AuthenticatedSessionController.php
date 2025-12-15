@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
-use App\Providers\RouteServiceProvider;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -29,12 +28,17 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
-        // Redirect to Admin Dashboard if admin, else standard dashboard
-        if ($request->user()->role === 'admin') {
+        $user = $request->user();
+
+        // Redirect based on role
+        if ($user->role === 'admin') {
             return redirect()->intended(route('admin.dashboard')); 
+        } elseif ($user->role === 'doctor') {
+            return redirect()->intended(route('doctor.dashboard'));
         }
 
-        return redirect()->intended(RouteServiceProvider::HOME);
+        // Default for patient and others
+        return redirect()->intended(route('dashboard'));
     }
 
     /**

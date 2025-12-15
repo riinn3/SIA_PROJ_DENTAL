@@ -11,8 +11,24 @@
     </div>
 
     <div class="card shadow mb-4">
-        <div class="card-header py-3">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
             <h6 class="m-0 font-weight-bold text-primary">All Bookings</h6>
+            
+            <form action="{{ route('patient.history') }}" method="GET" class="form-inline">
+                <div class="input-group input-group-sm">
+                    <input type="text" name="search" class="form-control bg-light border-0 small" 
+                           placeholder="Search treatment or doctor..." aria-label="Search" 
+                           value="{{ request('search') }}">
+                    <div class="input-group-append">
+                        <button class="btn btn-primary" type="button" onclick="this.form.submit()">
+                            <i class="fas fa-search fa-sm"></i>
+                        </button>
+                    </div>
+                </div>
+                @if(request('search'))
+                    <a href="{{ route('patient.history') }}" class="btn btn-sm btn-secondary ml-2">Reset</a>
+                @endif
+            </form>
         </div>
         <div class="card-body p-0">
             <div class="table-responsive">

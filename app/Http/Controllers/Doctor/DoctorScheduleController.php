@@ -60,19 +60,38 @@ class DoctorScheduleController extends Controller
     }
 
     // 2. Initialize Day (The Missing Button Fix)
-    // Actually, since we generate slots dynamically above, this button might just be a "Quick Reset"
-    // But if you use a Schedule table, here is the logic:
     public function updateDateSchedule(Request $request)
     {
-        // For this specific logic, we are just refreshing the page since slots are dynamic.
-        // If you have a separate 'schedules' table for day-off logic:
-        
-        $schedule = Schedule::firstOrCreate(
-            ['doctor_id' => Auth::id(), 'date' => $request->date],
-            ['start_time' => '09:00', 'end_time' => '17:00', 'status' => 'active']
+        $request->validate([
+            'date' => 'required|date',
+            'start_time' => 'nullable',
+            'end_time' => 'nullable',
+            'is_day_off' => 'nullable' // 0 or 1
+        ]);
+
+        $isDayOff = filter_var($request->is_day_off, FILTER_VALIDATE_BOOLEAN);
+
+        if ($isDayOff) {
+            $start = '00:00:00';
+            $end   = '00:00:00';
+        } else {
+            $start = $request->start_time ?: '09:00:00';
+            $end   = $request->end_time   ?: '17:00:00';
+        }
+
+        Schedule::updateOrCreate(
+            [
+                'doctor_id' => Auth::id(), 
+                'date' => $request->date
+            ],
+            [
+                'start_time' => $start,
+                'end_time' => $end,
+                'max_appointments' => 20 
+            ]
         );
 
-        return back()->with('success', 'Schedule initialized for ' . $request->date);
+        return response()->json(['message' => 'Schedule updated successfully!']);
     }
 
     // In app/Http/Controllers/Doctor/DoctorScheduleController.php

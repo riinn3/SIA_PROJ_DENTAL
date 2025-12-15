@@ -94,7 +94,7 @@
                                         <td>{{ $appt->patient->name ?? 'N/A (Patient Deleted)' }}</td>
                                         <td>{{ $appt->service->name }}</td>
                                         <td>Dr. {{ $appt->doctor->name }}</td>
-                                        <td class="text-right font-weight-bold">₱{{ number_format($appt->service->price, 2) }}</td>
+                                        <td class="text-right font-weight-bold">₱{{ number_format($appt->price, 2) }}</td>
                                     </tr>
                                     @empty
                                     <tr><td colspan="5" class="text-center text-muted">No records found.</td></tr>

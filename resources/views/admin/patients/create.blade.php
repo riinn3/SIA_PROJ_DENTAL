@@ -31,7 +31,7 @@
 
                     <div class="form-group">
                         <label class="font-weight-bold">Phone Number</label>
-                        <input type="tel" name="phone" class="form-control @error('phone') is-invalid @enderror" value="{{ old('phone') }}" placeholder="e.g. 0917...">
+                        <input type="tel" name="phone" class="form-control @error('phone') is-invalid @enderror" value="{{ old('phone') }}" placeholder="09xxxxxxxxx" pattern="^09\d{9}$" maxlength="11">
                         @error('phone')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror

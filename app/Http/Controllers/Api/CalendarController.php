@@ -67,7 +67,10 @@ class CalendarController extends Controller
                 $textColor = '#ffffff';
             } else {
                 $count = Appointment::whereDate('appointment_date', $dateStr)
-                    ->where('doctor_id', $doctorId)->where('status', '!=', 'cancelled')->count();
+                    ->where('doctor_id', $doctorId)
+                    ->where('status', '!=', 'cancelled')
+                    ->where('status', '!=', 'blocked') // Exclude blocked slots from count
+                    ->count();
                 
                 // SKIP IF 0 PATIENTS (Don't clutter calendar)
                 if ($count == 0 && !$isDayOff) {

@@ -30,7 +30,13 @@
         <div class="card-header py-3">
             <ul class="nav nav-pills card-header-pills">
                 <li class="nav-item">
-                    <a class="nav-link {{ $view == 'active' ? 'active' : '' }}" href="{{ route('admin.patients.index') }}">Active Patients</a>
+                    <a class="nav-link {{ $view == 'all' ? 'active' : '' }}" href="{{ route('admin.patients.index', ['view' => 'all']) }}">All Patients</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {{ $view == 'active' ? 'active' : '' }}" href="{{ route('admin.patients.index', ['view' => 'active']) }}">Active Patients</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {{ $view == 'walkin' ? 'active' : '' }}" href="{{ route('admin.patients.index', ['view' => 'walkin']) }}">Walk-In</a>
                 </li>
                 {{-- NEW PENDING TAB --}}
                 <li class="nav-item">
@@ -76,7 +82,6 @@
                                     </form>
                                 @else
                                     <a href="{{ route('admin.patients.show', $patient->id) }}" class="btn btn-primary btn-sm rounded-pill px-3"><i class="fas fa-eye"></i> View</a>
-                                    <a href="{{ route('admin.patients.edit', $patient->id) }}" class="btn btn-outline-primary btn-sm rounded-pill px-3"><i class="fas fa-edit"></i> Edit</a>
                                     <form action="{{ route('admin.patients.destroy', $patient->id) }}" method="POST" style="display:inline" onsubmit="return confirm('Archive patient: {{ $patient->name }}?');">
                                         @csrf @method('DELETE')
                                         <button class="btn btn-secondary btn-sm rounded-pill px-3"><i class="fas fa-archive"></i> Archive</button>
