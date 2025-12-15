@@ -9,20 +9,26 @@ use Illuminate\Support\Facades\DB;
 
 class ReportController extends Controller
 {
+    /**
+     * Generate and display the comprehensive clinic report.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\View\View
+     */
     public function index(Request $request)
     {
-        // 1. Defaults (This Month)
+        // Set default date range to the current month if not provided
         $start = $request->get('start_date') ? Carbon::parse($request->start_date) : Carbon::now()->startOfMonth();
         $end = $request->get('end_date') ? Carbon::parse($request->end_date) : Carbon::now()->endOfMonth();
 
-        // 2. MAIN LEDGER (Detailed Transactions)
+        // Retrieve completed appointments with details for the ledger
         $completedAppts = Appointment::with(['service', 'doctor', 'patient' => function($query) { $query->withTrashed(); }])
             ->where('appointments.status', 'completed')
             ->whereBetween('appointment_date', [$start, $end])
             ->orderBy('appointment_date')
             ->get();
 
-        // 3. SERVICE PERFORMANCE (Which treatment sells best?)
+        // Calculate service performance statistics (count and revenue)
         $serviceStats = Appointment::query()
             ->where('appointments.status', 'completed')
             ->whereBetween('appointment_date', [$start, $end])
@@ -32,7 +38,7 @@ class ReportController extends Controller
             ->orderByDesc('revenue')
             ->get();
 
-        // 4. DOCTOR PRODUCTIVITY (Who is working the most?)
+        // Calculate doctor productivity statistics
         $doctorStats = Appointment::query()
             ->where('appointments.status', 'completed')
             ->whereBetween('appointment_date', [$start, $end])
@@ -43,13 +49,13 @@ class ReportController extends Controller
             ->orderByDesc('count')
             ->get();
 
-        // 5. CANCELLATION AUDIT
+        // Retrieve cancelled appointments for audit
         $cancelledAppts = Appointment::with(['patient' => function($query) { $query->withTrashed(); }, 'canceller'])
             ->where('appointments.status', 'cancelled')
             ->whereBetween('updated_at', [$start, $end])
             ->get();
 
-        // 6. TOTALS
+        // Calculate summary statistics
         $stats = [
             'total_completed' => $completedAppts->count(),
             'total_cancelled' => $cancelledAppts->count(),
