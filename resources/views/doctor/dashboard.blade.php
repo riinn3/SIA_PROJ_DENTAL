@@ -24,7 +24,7 @@
         </div>
     </div>
 
-    {{-- 1. "UP NEXT" HERO CARD --}}
+    {{-- Up Next Section --}}
     <div class="card shadow mb-4 border-left-primary bg-gradient-light">
         <div class="card-body">
             <div class="row align-items-center">
@@ -51,7 +51,7 @@
         </div>
     </div>
 
-    {{-- 2. KPI CARDS --}}
+    {{-- Key Performance Indicators --}}
     <div class="row">
         {{-- Today's Count --}}
         <div class="col-xl-6 col-md-6 mb-4">
@@ -88,7 +88,7 @@
         </div>
     </div>
 
-    {{-- 3. TODAY'S AGENDA --}}
+    {{-- Today's Agenda Section --}}
     <div class="card shadow mb-4">
         <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
             <h6 class="m-0 font-weight-bold text-primary">Today's Agenda</h6>
@@ -146,7 +146,7 @@
         </div>
     </div>
 
-    {{-- 4. UPCOMING SCHEDULE (Next 7 Days) --}}
+    {{-- Upcoming Schedule Section --}}
     <div class="card shadow mb-4">
         <a href="#collapseUpcoming" class="d-block card-header py-3" data-toggle="collapse" role="button" aria-expanded="true">
             <h6 class="m-0 font-weight-bold text-success">Upcoming Schedule (Next 7 Days)</h6>

@@ -10,7 +10,7 @@
         </a>
     </div>
 
-    {{-- UP NEXT HERO CARD (Admin) --}}
+    {{-- Up Next Section --}}
     <div class="card shadow mb-4 border-left-primary bg-gradient-light">
         <div class="card-body">
             <div class="row align-items-center">
@@ -175,7 +175,7 @@
 @push('scripts')
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-        // --- BAR CHART (Revenue) ---
+        // Initialize the Revenue Overview Chart
         var ctx = document.getElementById("myAreaChart");
         var myLineChart = new Chart(ctx, {
             type: 'line',
@@ -206,7 +206,7 @@
             }
         });
 
-        // --- PIE CHART (Status) ---
+        // Initialize the Appointment Status Pie Chart
         var ctxPie = document.getElementById("myPieChart");
         var myPieChart = new Chart(ctxPie, {
             type: 'doughnut',

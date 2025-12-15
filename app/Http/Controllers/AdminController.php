@@ -10,9 +10,14 @@ use Illuminate\Support\Facades\DB;
 
 class AdminController extends Controller
 {
+    /**
+     * Display the admin dashboard with key metrics and charts.
+     *
+     * @return \Illuminate\View\View
+     */
     public function dashboard()
     {
-        // 1. KPI CARDS
+        // Retrieve key performance indicators
         $pendingCount = Appointment::where('status', 'pending')->count();
         
         $todayAppointments = Appointment::whereDate('appointment_date', Carbon::today())
@@ -21,18 +26,17 @@ class AdminController extends Controller
 
         $totalPatients = User::where('role', 'patient')->count();
 
-        // Total Earnings (Completed Appointments only)
+        // Calculate total earnings from completed appointments
         $earnings = Appointment::where('appointments.status', 'completed')
                     ->join('services', 'appointments.service_id', '=', 'services.id')
                     ->sum('services.price');
 
-        // 2. CHART DATA: Monthly Revenue (Optimized)
+        // Prepare monthly revenue data for the chart (last 6 months)
         $sixMonthsAgo = Carbon::now()->subMonths(5)->startOfMonth();
         
         $monthlyStats = Appointment::where('appointments.status', 'completed')
             ->where('appointment_date', '>=', $sixMonthsAgo)
             ->join('services', 'appointments.service_id', '=', 'services.id')
-            // MySQL compatible date format
             ->selectRaw("DATE_FORMAT(appointment_date, '%Y-%m') as month_key, SUM(services.price) as total")
             ->groupBy('month_key')
             ->pluck('total', 'month_key');
@@ -47,7 +51,7 @@ class AdminController extends Controller
             $revenueData[] = $monthlyStats[$monthKey] ?? 0;
         }
 
-        // 3. PIE CHART: Appointment Status (Optimized)
+        // Prepare appointment status distribution for the pie chart
         $statusStats = Appointment::selectRaw('status, count(*) as count')
             ->whereIn('status', ['completed', 'confirmed', 'cancelled'])
             ->groupBy('status')
@@ -59,7 +63,7 @@ class AdminController extends Controller
             $statusStats['cancelled'] ?? 0,
         ];
 
-        // 4. "UP NEXT" for Admin (Earliest confirmed appointment slot, getting ALL simultaneous patients)
+        // Retrieve upcoming appointments for the next available slot
         $now = Carbon::now();
         
         $nextSlot = Appointment::where('status', 'confirmed')
