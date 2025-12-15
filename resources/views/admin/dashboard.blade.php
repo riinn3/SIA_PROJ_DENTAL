@@ -10,6 +10,54 @@
         </a>
     </div>
 
+    {{-- UP NEXT HERO CARD (Admin) --}}
+    <div class="card shadow mb-4 border-left-primary bg-gradient-light">
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-md-12">
+                    <h5 class="text-primary font-weight-bold text-uppercase mb-3">Up Next ({{ $nextPatients->count() }})</h5>
+                    
+                    @if($nextPatients->count() > 0)
+                        <div class="row">
+                            @foreach($nextPatients as $appt)
+                                <div class="col-md-6 col-lg-4 mb-3">
+                                    <div class="card border-0 shadow-sm">
+                                        <div class="card-body p-3">
+                                            <div class="d-flex align-items-center mb-2">
+                                                <div class="mr-3">
+                                                    <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                                        <i class="fas fa-user"></i>
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <h6 class="font-weight-bold text-gray-900 mb-0">{{ $appt->patient->name ?? 'Unknown' }}</h6>
+                                                    <small class="text-muted">{{ $appt->service->name }}</small>
+                                                </div>
+                                            </div>
+                                            <div class="d-flex justify-content-between align-items-center mt-2 pt-2 border-top">
+                                                <small class="text-primary font-weight-bold">
+                                                    <i class="far fa-clock mr-1"></i> {{ $appt->appointment_time->format('h:i A') }}
+                                                </small>
+                                                <small class="text-secondary">
+                                                    <i class="fas fa-user-md mr-1"></i> {{ $appt->doctor->name ?? 'Any' }}
+                                                </small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    @else
+                        <div class="py-3">
+                            <h2 class="font-weight-bold text-gray-700 mb-1">No Patient Up Next</h2>
+                            <p class="mb-0 text-muted">All confirmed appointments for today have been completed or are in the future.</p>
+                        </div>
+                    @endif
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="row">
         <div class="col-xl-3 col-md-6 mb-4">
             <div class="card border-left-success shadow h-100 py-2">

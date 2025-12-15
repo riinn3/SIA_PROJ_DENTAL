@@ -59,23 +59,34 @@ class AdminController extends Controller
             $statusStats['cancelled'] ?? 0,
         ];
 
-        // 4. "UP NEXT" for Admin (Earliest confirmed appointment across all doctors)
-        $nextPatient = Appointment::with(['patient', 'doctor', 'service'])
-            ->where('status', 'confirmed')
-            ->where(function($query) {
-                $query->whereDate('appointment_date', '>', Carbon::today())
-                      ->orWhere(function($q) {
-                          $q->whereDate('appointment_date', Carbon::today())
-                            ->whereTime('appointment_time', '>=', Carbon::now()->format('H:i:s'));
+        // 4. "UP NEXT" for Admin (Earliest confirmed appointment slot, getting ALL simultaneous patients)
+        $now = Carbon::now();
+        
+        $nextSlot = Appointment::where('status', 'confirmed')
+            ->where(function($query) use ($now) {
+                $query->whereDate('appointment_date', '>', $now->toDateString())
+                      ->orWhere(function($q) use ($now) {
+                          $q->whereDate('appointment_date', $now->toDateString())
+                            ->whereTime('appointment_time', '>=', $now->toTimeString());
                       });
             })
             ->orderBy('appointment_date')
             ->orderBy('appointment_time')
-            ->first();
+            ->first(['appointment_date', 'appointment_time']);
+
+        $nextPatients = collect([]);
+
+        if ($nextSlot) {
+            $nextPatients = Appointment::with(['patient', 'doctor', 'service'])
+                ->where('status', 'confirmed')
+                ->where('appointment_date', $nextSlot->appointment_date)
+                ->where('appointment_time', $nextSlot->appointment_time)
+                ->get();
+        }
 
         return view('admin.dashboard', compact(
             'pendingCount', 'todayAppointments', 'totalPatients', 'earnings',
-            'months', 'revenueData', 'pieData', 'nextPatient' // Pass nextPatient
+            'months', 'revenueData', 'pieData', 'nextPatients'
         ));
     }
 }
