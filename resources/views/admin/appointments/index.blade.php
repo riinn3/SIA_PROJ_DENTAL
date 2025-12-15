@@ -106,11 +106,13 @@
                     <input type="text" class="form-control" name="search" placeholder="Patient or Doctor..." value="{{ $search }}">
                 </div>
 
-                <label class="mr-2 mb-2 text-gray-600 font-weight-bold small">From:</label>
-                <input type="date" name="start_date" class="form-control mr-2 mb-2" value="{{ $startDate }}">
+                @if(!request()->has('date')) {{-- Only show date range filter if not on 'Today' tab --}}
+                    <label class="mr-2 mb-2 text-gray-600 font-weight-bold small">From:</label>
+                    <input type="date" name="start_date" class="form-control mr-2 mb-2" value="{{ $startDate }}">
 
-                <label class="mr-2 mb-2 text-gray-600 font-weight-bold small">To:</label>
-                <input type="date" name="end_date" class="form-control mr-2 mb-2" value="{{ $endDate }}">
+                    <label class="mr-2 mb-2 text-gray-600 font-weight-bold small">To:</label>
+                    <input type="date" name="end_date" class="form-control mr-2 mb-2" value="{{ $endDate }}">
+                @endif
 
                 <button type="submit" class="btn btn-primary mb-2 shadow-sm">Filter</button>
                 <a href="{{ route('admin.appointments.index', request()->has('date') ? ['date' => request('date')] : ['status' => 'pending']) }}" class="btn btn-secondary mb-2 ml-2 shadow-sm">Reset</a>
