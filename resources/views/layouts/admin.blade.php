@@ -53,21 +53,21 @@
             const sidebar = document.querySelector('.sidebar');
             const body = document.querySelector('body');
             
- 
+            // Apply stored state on load
             if (localStorage.getItem('sidebar-toggled') === 'true') {
                 body.classList.add('sidebar-toggled');
                 if(sidebar) sidebar.classList.add('toggled');
             }
 
+            // Listen for toggle clicks
             const toggles = document.querySelectorAll('#sidebarToggle, #sidebarToggleTop');
             
             toggles.forEach(toggle => {
                 toggle.addEventListener('click', function() {
-                   
-                    setTimeout(() => {
-                        const isToggled = body.classList.contains('sidebar-toggled') || sidebar.classList.contains('toggled');
-                        localStorage.setItem('sidebar-toggled', isToggled);
-                    }, 250); 
+                    // Let SB Admin 2 script handle the class toggling first
+                    // Then, immediately store the new state
+                    const isToggled = body.classList.contains('sidebar-toggled') || (sidebar && sidebar.classList.contains('toggled'));
+                    localStorage.setItem('sidebar-toggled', isToggled);
                 });
             });
         });

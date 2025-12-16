@@ -18,12 +18,37 @@
         <div class="card-body py-2">
             <form action="{{ route('admin.reports.index') }}" method="GET" class="form-inline justify-content-between">
                 <input type="hidden" name="active_tab" id="activeTabInput" value="{{ request('active_tab', 'ledger') }}">
-                <div class="d-flex align-items-center">
-                    <label class="mr-2 font-weight-bold text-gray-700">Date Range:</label>
+                <div class="d-flex align-items-center flex-wrap">
+                    <label class="mr-2 font-weight-bold text-gray-700">Filters:</label>
+                    
+                    {{-- Doctor Filter --}}
+                    <select name="doctor_id" class="custom-select custom-select-sm mr-2" style="width: 180px;" onchange="this.form.submit()">
+                        <option value="">All Doctors</option>
+                        @foreach($doctors as $doc)
+                            <option value="{{ $doc->id }}" {{ request('doctor_id') == $doc->id ? 'selected' : '' }}>
+                                Dr. {{ $doc->name }}
+                            </option>
+                        @endforeach
+                    </select>
+
+                    {{-- Service Filter --}}
+                    <select name="service_id" class="custom-select custom-select-sm mr-2" style="width: 180px;" onchange="this.form.submit()">
+                        <option value="">All Services</option>
+                        @foreach($services as $srv)
+                            <option value="{{ $srv->id }}" {{ request('service_id') == $srv->id ? 'selected' : '' }}>
+                                {{ $srv->name }}
+                            </option>
+                        @endforeach
+                    </select>
+
+                    <label class="mr-2 font-weight-bold text-gray-700">Date:</label>
                     <input type="date" name="start_date" class="form-control form-control-sm mr-2" value="{{ $start->format('Y-m-d') }}">
                     <span class="mr-2 text-gray-500">to</span>
                     <input type="date" name="end_date" class="form-control form-control-sm mr-3" value="{{ $end->format('Y-m-d') }}">
                     <button type="submit" class="btn btn-sm btn-primary"><i class="fas fa-filter mr-1"></i> Filter</button>
+                    <a href="{{ route('admin.reports.index') }}" class="btn btn-sm btn-secondary ml-1" title="Clear Filters">
+                        <i class="fas fa-undo"></i>
+                    </a>
                 </div>
                 <div>
                     <span class="badge badge-light border text-dark p-2">

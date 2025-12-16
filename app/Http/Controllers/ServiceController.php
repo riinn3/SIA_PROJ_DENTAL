@@ -85,12 +85,13 @@ class ServiceController extends Controller
      * @return \Illuminate\Http\RedirectResponse
      */
     public function update(Request $request, $id) {
-        $request->validate([
+        $data = $request->validate([
             'name' => 'required|string|max:255',
             'price' => 'required|numeric|min:0',
             'duration_minutes' => 'required|integer|min:30|multiple_of:30',
+            'description' => 'nullable|string',
         ]);
-        Service::findOrFail($id)->update($request->all());
+        Service::findOrFail($id)->update($data);
         return redirect()->route('admin.services.index')->with('success', 'Service updated.');
     }
 
