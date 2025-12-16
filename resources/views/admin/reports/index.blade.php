@@ -17,6 +17,7 @@
     <div class="card shadow mb-4 d-print-none">
         <div class="card-body py-2">
             <form action="{{ route('admin.reports.index') }}" method="GET" class="form-inline justify-content-between">
+                <input type="hidden" name="active_tab" id="activeTabInput" value="{{ request('active_tab', 'ledger') }}">
                 <div class="d-flex align-items-center">
                     <label class="mr-2 font-weight-bold text-gray-700">Date Range:</label>
                     <input type="date" name="start_date" class="form-control form-control-sm mr-2" value="{{ $start->format('Y-m-d') }}">
@@ -45,22 +46,22 @@
         <div class="d-print-none mb-3">
             <ul class="nav nav-tabs" id="reportTabs" role="tablist">
                 <li class="nav-item">
-                    <a class="nav-link active" id="tab-ledger" data-toggle="tab" href="#ledger" role="tab">
+                    <a class="nav-link {{ request('active_tab', 'ledger') == 'ledger' ? 'active' : '' }}" id="tab-ledger" data-toggle="tab" href="#ledger" role="tab" onclick="document.getElementById('activeTabInput').value='ledger'">
                         <i class="fas fa-list mr-1"></i> Transaction Ledger
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" id="tab-services" data-toggle="tab" href="#services" role="tab">
+                    <a class="nav-link {{ request('active_tab') == 'services' ? 'active' : '' }}" id="tab-services" data-toggle="tab" href="#services" role="tab" onclick="document.getElementById('activeTabInput').value='services'">
                         <i class="fas fa-tooth mr-1"></i> Top Services
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" id="tab-doctors" data-toggle="tab" href="#doctors" role="tab">
+                    <a class="nav-link {{ request('active_tab') == 'doctors' ? 'active' : '' }}" id="tab-doctors" data-toggle="tab" href="#doctors" role="tab" onclick="document.getElementById('activeTabInput').value='doctors'">
                         <i class="fas fa-user-md mr-1"></i> Doctor Productivity
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link text-danger" id="tab-audit" data-toggle="tab" href="#audit" role="tab">
+                    <a class="nav-link {{ request('active_tab') == 'audit' ? 'active' : '' }} text-danger" id="tab-audit" data-toggle="tab" href="#audit" role="tab" onclick="document.getElementById('activeTabInput').value='audit'">
                         <i class="fas fa-shield-alt mr-1"></i> Audit Log
                     </a>
                 </li>
@@ -69,7 +70,7 @@
 
         <div class="tab-content">
             
-            <div class="tab-pane fade show active" id="ledger" role="tabpanel">
+            <div class="tab-pane fade {{ request('active_tab', 'ledger') == 'ledger' ? 'show active' : '' }}" id="ledger" role="tabpanel">
                 <div class="card shadow mb-4">
                     <div class="card-header py-3 bg-white d-flex justify-content-between">
                         <h6 class="m-0 font-weight-bold text-primary">Completed Transactions</h6>
@@ -112,7 +113,7 @@
                 </div>
             </div>
 
-            <div class="tab-pane fade" id="services" role="tabpanel">
+            <div class="tab-pane fade {{ request('active_tab') == 'services' ? 'show active' : '' }}" id="services" role="tabpanel">
                 <div class="card shadow mb-4">
                     <div class="card-header py-3 bg-white">
                         <h6 class="m-0 font-weight-bold text-info">Service Performance Analysis</h6>
@@ -140,7 +141,7 @@
                 </div>
             </div>
 
-            <div class="tab-pane fade" id="doctors" role="tabpanel">
+            <div class="tab-pane fade {{ request('active_tab') == 'doctors' ? 'show active' : '' }}" id="doctors" role="tabpanel">
                 <div class="card shadow mb-4">
                     <div class="card-header py-3 bg-white">
                         <h6 class="m-0 font-weight-bold text-success">Doctor Productivity Report</h6>
@@ -168,7 +169,7 @@
                 </div>
             </div>
 
-            <div class="tab-pane fade" id="audit" role="tabpanel">
+            <div class="tab-pane fade {{ request('active_tab') == 'audit' ? 'show active' : '' }}" id="audit" role="tabpanel">
                 <div class="card shadow mb-4 border-left-danger">
                     <div class="card-header py-3 bg-white">
                         <h6 class="m-0 font-weight-bold text-danger">Cancellation Security Log</h6>

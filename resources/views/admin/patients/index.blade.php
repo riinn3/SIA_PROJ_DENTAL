@@ -94,7 +94,18 @@
                         {{-- Loop through each patient and display their details --}}
                         @foreach($patients as $patient)
                         <tr>
-                            <td class="font-weight-bold">{{ $patient->name }}</td>
+                            <td class="font-weight-bold">
+                                {{ $patient->name }}
+                                @if($patient->trashed())
+                                    <span class="badge badge-secondary ml-2">Archived</span>
+                                @elseif($patient->email === null)
+                                    <span class="badge badge-info ml-2">Walk-in</span>
+                                @elseif($patient->email_verified_at === null)
+                                    <span class="badge badge-warning ml-2 text-dark">Pending</span>
+                                @else
+                                    <span class="badge badge-success ml-2">Active</span>
+                                @endif
+                            </td>
                             <td>
                                 {{ $patient->email }}<br>
                                 <small>{{ $patient->phone }}</small>
