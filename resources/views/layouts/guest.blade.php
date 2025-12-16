@@ -25,6 +25,7 @@
 </head>
 <body class="bg-light">
 
+
     <nav class="navbar navbar-expand-lg navbar-light guest-nav sticky-top">
         <div class="container">
             <a class="navbar-brand font-weight-bold text-primary d-flex align-items-center" href="{{ route('public.home') }}">
@@ -49,11 +50,12 @@
         </div>
     </nav>
 
+
     <main>
-        {{ $slot ?? '' }} 
         @yield('content')
     </main>
 
+ 
     <footer class="bg-dark text-white pt-5 pb-4 mt-5">
         <div class="container">
             <div class="row">
