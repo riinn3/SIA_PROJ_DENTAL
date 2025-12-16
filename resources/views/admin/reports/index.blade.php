@@ -223,22 +223,22 @@
 
     <script>
         function printReport() {
-            // 1. Expand all tabs so they are visible in print
-            $('.tab-pane').addClass('show active');
-            $('.nav-tabs').hide(); // Hide the clickable tabs
-            
             window.print();
-
-            // 2. Reset after print (reload to be safe or just revert classes)
-            // Timeout allows the print dialog to open before we reset
-            setTimeout(() => {
-                $('.nav-tabs').show();
-                // Optional: Reload to restore exact state
-                // location.reload(); 
-            }, 1000);
         }
 
         function exportToExcel() {
+            // Check if current inputs match the report dates
+            const currentStart = "{{ $start->format('Y-m-d') }}";
+            const currentEnd = "{{ $end->format('Y-m-d') }}";
+            const inputStart = document.querySelector('input[name="start_date"]').value;
+            const inputEnd = document.querySelector('input[name="end_date"]').value;
+
+            if (currentStart !== inputStart || currentEnd !== inputEnd) {
+                if(!confirm("The selected date range does not match the generated report.\n\nClick 'Cancel' to Update/Filter the report first.\nClick 'OK' to export the currently displayed data.")) {
+                    return;
+                }
+            }
+
             /* Create a new workbook */
             var wb = XLSX.utils.book_new();
             
@@ -254,35 +254,79 @@
             var ws3 = XLSX.utils.table_to_sheet(document.getElementById('table-doctors'));
             XLSX.utils.book_append_sheet(wb, ws3, "Doctors");
 
-            /* Save file */
-            XLSX.writeFile(wb, "PonceMiranda_Report_{{ now()->format('Y-m-d') }}.xlsx");
+            /* Save file with date range */
+            XLSX.writeFile(wb, "PonceMiranda_Report_{{ $start->format('Y-m-d') }}_to_{{ $end->format('Y-m-d') }}.xlsx");
         }
     </script>
 
     <style>
         @media print {
-            /* Hide everything by default */
-            body * { visibility: hidden; }
+            /* Hide Sidebar, Topbar, Buttons, Inputs */
+            .sidebar, .topbar, .btn, .d-print-none, form, footer, #accordionSidebar { 
+                display: none !important; 
+            }
             
-            /* Show only the report container */
-            #reportContainer, #reportContainer * { visibility: visible; }
-            
-            /* Positioning */
-            #reportContainer {
-                position: absolute;
-                left: 0;
-                top: 0;
-                width: 100%;
+            /* Reset Layout */
+            #wrapper { 
+                display: block !important; 
+                width: 100% !important; 
+                overflow: visible !important;
+            }
+            #content-wrapper { 
+                margin-left: 0 !important; 
+                width: 100% !important; 
+                overflow: visible !important;
+            }
+            #content {
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+            .container-fluid { 
+                padding: 0 !important; 
+                max-width: 100% !important;
             }
 
-            /* Clean up for Paper */
-            .card { border: none !important; box-shadow: none !important; margin-bottom: 20px; }
-            .card-header { border-bottom: 2px solid #000 !important; background: none !important; padding-left: 0; }
-            .table { width: 100% !important; border-collapse: collapse; }
-            .badge { border: 1px solid #000; color: #000 !important; background: none !important; }
+            /* Report Container Visibility */
+            #reportContainer { 
+                display: block !important; 
+                width: 100% !important;
+            }
+
+            /* Show all Tab Panes (stacked) */
+            .tab-content > .tab-pane {
+                display: block !important;
+                opacity: 1 !important;
+                visibility: visible !important;
+            }
+            .nav-tabs { display: none !important; }
+
+            /* Styling for Print */
+            .card { 
+                border: none !important; 
+                box-shadow: none !important; 
+                margin-bottom: 20px !important;
+            }
+            .card-header {
+                background-color: #fff !important;
+                border-bottom: 2px solid #333 !important;
+                color: #000 !important;
+            }
+            .table { 
+                width: 100% !important; 
+                border-collapse: collapse !important; 
+            }
+            .table th, .table td {
+                color: #000 !important;
+                border: 1px solid #ddd !important;
+            }
             
-            /* Hiding buttons/tabs explicitly */
-            .btn, .nav-tabs, .d-print-none { display: none !important; }
+            /* Typography */
+            body { 
+                font-size: 12pt; 
+                color: #000 !important; 
+                background: #fff !important;
+            }
+            h1, h2, h3, h4, h5, h6 { color: #000 !important; }
         }
     </style>
 @endpush
