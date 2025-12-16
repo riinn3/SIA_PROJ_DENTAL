@@ -61,6 +61,13 @@ class ScheduleService
         }
 
         $bookings = $bookingsQuery->get(); // Get the bookings first
+        
+        // DEBUG: Log bookings
+        \Log::info("ScheduleService: Generating slots for date {$date}, doctor {$doctorId}");
+        \Log::info("ScheduleService: Found " . $bookings->count() . " bookings");
+        foreach ($bookings as $b) {
+            \Log::info("  - Booking ID {$b->id}: {$b->appointment_time}, {$b->duration_minutes} mins, status: {$b->status}");
+        }
 
         // Prepare raw appointments list for the frontend (for display purposes)
         // EXCLUDE 'blocked' slots from the patient list
@@ -97,8 +104,9 @@ class ScheduleService
 
         // Generate Slots
         $slots = [];
-        $startTime = Carbon::parse($schedule->start_time);
-        $endTime = Carbon::parse($schedule->end_time);
+        // Anchor schedule times to the requested date to ensure correct overlap comparisons
+        $startTime = Carbon::parse($date . ' ' . Carbon::parse($schedule->start_time)->format('H:i:s'));
+        $endTime = Carbon::parse($date . ' ' . Carbon::parse($schedule->end_time)->format('H:i:s'));
         
         $lunchStart = Carbon::parse($date . ' 12:00:00');
         $lunchEnd = Carbon::parse($date . ' 13:00:00');
@@ -123,12 +131,13 @@ class ScheduleService
                 $apptStart = Carbon::parse($date . ' ' . Carbon::parse($appt->appointment_time)->format('H:i:s'));
                 $apptEnd = $apptStart->copy()->addMinutes((int)$appt->duration_minutes); // Explicitly cast to int
 
-                if ($slotStart >= $apptStart && $slotStart < $apptEnd) {
+                // Proper overlap check: slot overlaps with appointment if slot starts before appointment ends AND appointment starts before slot ends
+                if ($slotStart < $apptEnd && $apptStart < $slotEnd) {
                     // Check specifically for BLOCKED status
                     if ($appt->status === 'blocked') {
                         $slotStatus = 'blocked';
                         $slotDetails = 'Blocked';
-                    } else {
+                    } elseif (in_array($appt->status, ['pending', 'confirmed', 'completed'])) {
                         $slotStatus = 'booked';
                         $slotDetails = $isDoctorOrAdmin ? ($appt->patient->name ?? 'Unknown Patient') : 'Booked';
                     }

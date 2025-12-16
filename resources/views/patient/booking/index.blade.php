@@ -149,7 +149,7 @@
     .selected-card { border: 2px solid #4e73df !important; background-color: #f8f9fc; transform: scale(1.02); }
     .fc-day-past { background-color: #f8f9fc; pointer-events: none; opacity: 0.6; }
     
-    /* Bigger, clearer slot buttons */
+    
     .slot-btn { 
         font-weight: bold; 
         border-left: 6px solid transparent; 
@@ -282,16 +282,65 @@
                     return;
                 }
 
-                // 1. Determine how many 30-min blocks we need
-                // e.g., 120 mins = 4 slots
+                // 1. First, display ALL individual 30-minute slots with their status
+                let statusSection = document.createElement('div');
+                statusSection.className = 'mb-3';
+                statusSection.innerHTML = '<h6 class="text-center text-muted mb-2">Schedule Overview</h6>';
+                
+                data.slots.forEach(slot => {
+                    let slotEl = document.createElement('div');
+                    slotEl.className = 'list-group-item py-2 mb-1 shadow-sm rounded d-flex justify-content-between align-items-center';
+                    let typeClass = '';
+                    let icon = '';
+
+                    switch(slot.type) {
+                        case 'available':
+                            typeClass = 'list-group-item-success';
+                            icon = '<i class="fas fa-check-circle text-success"></i>';
+                            break;
+                        case 'booked':
+                            typeClass = 'list-group-item-warning';
+                            icon = '<i class="fas fa-user-clock text-warning"></i>';
+                            break;
+                        case 'blocked':
+                        case 'lunch':
+                        case 'full':
+                            typeClass = 'list-group-item-danger';
+                            icon = '<i class="fas fa-times-circle text-danger"></i>';
+                            break;
+                        default:
+                            typeClass = 'list-group-item-secondary';
+                            icon = '<i class="fas fa-question-circle text-secondary"></i>';
+                    }
+
+                    slotEl.classList.add(typeClass);
+                    slotEl.innerHTML = `
+                        <div>
+                            <div class="h6 mb-0 text-dark small">${slot.time_label}</div>
+                            <small class="text-muted">${slot.details}</small>
+                        </div>
+                        ${icon}
+                    `;
+                    slotEl.style.pointerEvents = 'none';
+                    slotEl.style.opacity = slot.type === 'available' ? '1' : '0.7';
+                    statusSection.appendChild(slotEl);
+                });
+                
+                container.appendChild(statusSection);
+
+                // Add separator
+                let separator = document.createElement('div');
+                separator.className = 'my-3 text-center text-gray-600 font-weight-bold';
+                separator.innerHTML = '--- Bookable Slots ---';
+                container.appendChild(separator);
+
+                // 2. Then, show merged bookable slots
                 let slotsNeeded = Math.ceil(selectedDuration / 30);
                 let hasSlots = false;
 
-                // 2. Loop through the raw slots
                 for (let i = 0; i <= data.slots.length - slotsNeeded; i++) {
                     let isSequenceOpen = true;
 
-                    // 3. Check if the next N slots are ALL "available"
                     for (let j = 0; j < slotsNeeded; j++) {
                         if (data.slots[i + j].type !== 'available') {
                             isSequenceOpen = false;
@@ -299,15 +348,13 @@
                         }
                     }
 
-                    // 4. If valid, merge them into ONE button
                     if (isSequenceOpen) {
                         hasSlots = true;
                         let startSlot = data.slots[i];
-                        let endSlot = data.slots[i + slotsNeeded - 1]; // The last slot in the sequence
+                        let endSlot = data.slots[i + slotsNeeded - 1];
 
-                        // Clean labels (remove " - ...")
-                        let startLabel = startSlot.time_label.split(' - ')[0]; // "1:30 PM"
-                        let endLabel = endSlot.time_label.split(' - ')[1];     // "3:30 PM"
+                        let startLabel = startSlot.time_label.split(' - ')[0];
+                        let endLabel = endSlot.time_label.split(' - ')[1];
                         
                         let displayLabel = `${startLabel} - ${endLabel}`;
 
@@ -327,7 +374,7 @@
                 }
 
                 if (!hasSlots) {
-                    container.innerHTML = `<div class="alert alert-secondary small m-2 text-center">
+                    container.innerHTML += `<div class="alert alert-secondary small m-2 text-center">
                         No continuous ${selectedDuration}-minute slot available.<br>Please try another date.
                     </div>`;
                 }
