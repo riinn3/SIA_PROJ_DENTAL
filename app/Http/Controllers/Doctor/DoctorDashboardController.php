@@ -22,7 +22,6 @@ class DoctorDashboardController extends Controller
      * Aggregates key metrics for the doctor:
      * - Today's entire appointment list (confirmed, pending, and completed).
      * - A preview of the upcoming week's schedule load.
-     * - The "Up Next" patient, identifying the earliest confirmed appointment that hasn't started yet.
      * - The doctor's specific working hours for the current day.
      */
     public function index()

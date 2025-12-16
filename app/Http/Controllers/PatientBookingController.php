@@ -29,7 +29,6 @@ class PatientBookingController extends Controller
         $popular = $allServices->filter(function($s) {
             return in_array($s->name, ['Teeth Cleaning', 'Teeth Extraction']);
         })->sortBy(function($s) {
-            // "Teeth Cleaning" comes first, followed by others
             return $s->name === 'Teeth Cleaning' ? 0 : 1;
         });
 
@@ -68,14 +67,14 @@ class PatientBookingController extends Controller
             ],
             'appointment_time' => [
                 'required',
-                // Check 1: Future time for today
+                //  Future time for today
                 function ($attribute, $value, $fail) use ($request) {
                     $appointmentDateTime = \Carbon\Carbon::parse($request->appointment_date . ' ' . $value);
                     if ($appointmentDateTime->isToday() && $appointmentDateTime->lt(\Carbon\Carbon::now())) {
                         $fail('The ' . $attribute . ' must be a future time for today\'s appointments.');
                     }
                 },
-                // Check 2: No Overlapping Appointments for the Patient
+                // No Overlapping Appointments for the Patient
                 function ($attribute, $value, $fail) use ($request) {
                     $user = Auth::user();
                     $service = Service::find($request->service_id);

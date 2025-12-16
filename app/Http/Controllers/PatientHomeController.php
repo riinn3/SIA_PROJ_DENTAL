@@ -16,8 +16,8 @@ class PatientHomeController extends Controller
      * Display the patient dashboard.
      * 
      * Retrieves two key pieces of information:
-     * 1. The immediate next upcoming appointment (to display as a hero card).
-     * 2. A brief history of recent past or completed appointments.
+     * The immediate next upcoming appointment (to display as a hero card).
+     * A brief history of recent past or completed appointments.
      *
      * @return \Illuminate\View\View
      */
@@ -28,7 +28,6 @@ class PatientHomeController extends Controller
         $now = Carbon::now();
 
         // Retrieve the single earliest upcoming appointment.
-        // We include 'pending' status so the user knows their request is in the system.
         $upcoming = Appointment::where('user_id', $user->id)
             ->whereIn('status', ['confirmed', 'pending']) 
             ->where(function($query) use ($now) {

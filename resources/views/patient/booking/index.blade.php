@@ -161,6 +161,7 @@
     }
     .slot-btn:hover { border-left: 6px solid #1cc88a; background-color: #f0fff4; }
     .slot-btn.active { border-left: 6px solid #1cc88a; background-color: #1cc88a !important; color: white !important; }
+    .badge-slot { font-size: 10px; letter-spacing: .5px; }
 </style>
 
 <script>
@@ -213,7 +214,7 @@
         calendar.render();
     });
 
-    // --- STEP 1 LOGIC ---
+
     function selectService(el, id, name, price, duration) {
         document.getElementById('otherServiceSelect').selectedIndex = 0;
         applyServiceSelection(id, name, price, duration);
@@ -237,7 +238,7 @@
 
     function applyServiceSelection(id, name, price, duration) {
         selectedServiceId = id;
-        selectedDuration = parseInt(duration); // Store duration globally
+        selectedDuration = parseInt(duration); 
 
         document.getElementById('input_service_id').value = id;
         document.getElementById('input_duration').value = selectedDuration;
@@ -250,7 +251,7 @@
         document.getElementById('step2').scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 
-    // --- STEP 2 LOGIC ---
+
     function selectDoctor(el, id, name) {
         document.querySelectorAll('.doctor-card').forEach(c => c.classList.remove('selected-card'));
         el.classList.add('selected-card');
@@ -264,7 +265,7 @@
         document.getElementById('step3').scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 
-    // --- STEP 3 LOGIC (THE SMART MERGING) ---
+
     function fetchSlots(date) {
         const container = document.getElementById('slotsContainer');
         const dateLabel = document.getElementById('selectedDateLabel');
@@ -281,108 +282,78 @@
                     container.innerHTML = '<div class="alert alert-warning small m-2">Doctor not available.</div>';
                     return;
                 }
+                // Store slots globally for click validation
+                window.currentSlots = data.slots;
+     
+                data.slots.forEach((slot, index) => {
+                    const item = document.createElement('div');
+                    item.className = 'list-group-item d-flex justify-content-between align-items-center py-2';
 
-                // 1. First, display ALL individual 30-minute slots with their status
-                let statusSection = document.createElement('div');
-                statusSection.className = 'mb-3';
-                statusSection.innerHTML = '<h6 class="text-center text-muted mb-2">Schedule Overview</h6>';
-                
-                data.slots.forEach(slot => {
-                    let slotEl = document.createElement('div');
-                    slotEl.className = 'list-group-item py-2 mb-1 shadow-sm rounded d-flex justify-content-between align-items-center';
-                    let typeClass = '';
-                    let icon = '';
+       
+                    let badgeClass = 'badge-secondary';
+                    let badgeText = (slot.details || '').toUpperCase();
+                    if (slot.type === 'available') badgeClass = 'badge-success', badgeText = 'AVAILABLE';
+                    else if (slot.type === 'booked') badgeClass = 'badge-danger', badgeText = 'BOOKED';
+                    else if (slot.type === 'blocked') badgeClass = 'badge-dark', badgeText = 'BLOCKED';
+                    else if (slot.type === 'lunch') badgeClass = 'badge-warning', badgeText = 'LUNCH';
+                    else if (slot.type === 'full') badgeClass = 'badge-secondary', badgeText = 'FULL';
 
-                    switch(slot.type) {
-                        case 'available':
-                            typeClass = 'list-group-item-success';
-                            icon = '<i class="fas fa-check-circle text-success"></i>';
-                            break;
-                        case 'booked':
-                            typeClass = 'list-group-item-warning';
-                            icon = '<i class="fas fa-user-clock text-warning"></i>';
-                            break;
-                        case 'blocked':
-                        case 'lunch':
-                        case 'full':
-                            typeClass = 'list-group-item-danger';
-                            icon = '<i class="fas fa-times-circle text-danger"></i>';
-                            break;
-                        default:
-                            typeClass = 'list-group-item-secondary';
-                            icon = '<i class="fas fa-question-circle text-secondary"></i>';
-                    }
+        
+                    const left = document.createElement('div');
+                    left.innerHTML = `<div class="font-weight-bold text-dark small mb-0">${slot.time_label}</div>`;
 
-                    slotEl.classList.add(typeClass);
-                    slotEl.innerHTML = `
-                        <div>
-                            <div class="h6 mb-0 text-dark small">${slot.time_label}</div>
-                            <small class="text-muted">${slot.details}</small>
-                        </div>
-                        ${icon}
-                    `;
-                    slotEl.style.pointerEvents = 'none';
-                    slotEl.style.opacity = slot.type === 'available' ? '1' : '0.7';
-                    statusSection.appendChild(slotEl);
-                });
-                
-                container.appendChild(statusSection);
+                    // Right content (badge + action)
+                    const right = document.createElement('div');
+                    right.className = 'd-flex align-items-center';
+                    const badge = document.createElement('span');
+                    badge.className = `badge ${badgeClass} badge-slot mr-2`;
+                    badge.innerText = badgeText;
+                    right.appendChild(badge);
 
-                // Add separator
-                let separator = document.createElement('div');
-                separator.className = 'my-3 text-center text-gray-600 font-weight-bold';
-                separator.innerHTML = '--- Bookable Slots ---';
-                container.appendChild(separator);
-
-                // 2. Then, show merged bookable slots
-                let slotsNeeded = Math.ceil(selectedDuration / 30);
-                let hasSlots = false;
-
-                for (let i = 0; i <= data.slots.length - slotsNeeded; i++) {
-                    let isSequenceOpen = true;
-
-                    for (let j = 0; j < slotsNeeded; j++) {
-                        if (data.slots[i + j].type !== 'available') {
-                            isSequenceOpen = false;
-                            break;
-                        }
-                    }
-
-                    if (isSequenceOpen) {
-                        hasSlots = true;
-                        let startSlot = data.slots[i];
-                        let endSlot = data.slots[i + slotsNeeded - 1];
-
-                        let startLabel = startSlot.time_label.split(' - ')[0];
-                        let endLabel = endSlot.time_label.split(' - ')[1];
-                        
-                        let displayLabel = `${startLabel} - ${endLabel}`;
-
-                        let btn = document.createElement('button');
-                        btn.className = 'list-group-item list-group-item-action py-3 mb-2 shadow-sm rounded slot-btn';
-                        btn.innerHTML = `
-                            <div>
-                                <div class="h6 mb-0 text-dark">${displayLabel}</div>
-                                <small class="text-muted">Duration: ${selectedDuration} mins</small>
-                            </div>
-                            <i class="fas fa-chevron-right text-gray-400"></i>
-                        `;
+                    if (slot.type === 'available') {
+                        const btn = document.createElement('button');
                         btn.type = 'button';
-                        btn.onclick = function() { selectTime(this, date, startSlot.raw_time, displayLabel); };
-                        container.appendChild(btn);
+                        btn.className = 'btn btn-sm btn-outline-success';
+                        btn.innerHTML = '<i class="fas fa-plus"></i>';
+                        btn.onclick = function() { selectFromIndex(date, index, this); };
+                        right.appendChild(btn);
                     }
-                }
 
-                if (!hasSlots) {
-                    container.innerHTML += `<div class="alert alert-secondary small m-2 text-center">
-                        No continuous ${selectedDuration}-minute slot available.<br>Please try another date.
-                    </div>`;
-                }
+                    item.appendChild(left);
+                    item.appendChild(right);
+                    container.appendChild(item);
+                });
             })
             .catch(err => {
                 console.error(err);
                 container.innerHTML = '<div class="text-danger small text-center">Error loading slots.</div>';
             });
+    }
+
+    // Validate contiguous available slots from clicked index and select
+    function selectFromIndex(date, startIndex, btnEl) {
+        if (!window.currentSlots) return;
+        const slots = window.currentSlots;
+        const needed = Math.ceil(selectedDuration / 30);
+        // Ensure all required slots are available
+        for (let j = 0; j < needed; j++) {
+            const s = slots[startIndex + j];
+            if (!s || s.type !== 'available') {
+                alert(`This start time doesn't have a continuous ${selectedDuration}-minute window.`);
+                return;
+            }
+        }
+        const startSlot = slots[startIndex];
+        const endSlot = slots[startIndex + needed - 1];
+        const startLabel = startSlot.time_label.split(' - ')[0];
+        const endLabel = endSlot.time_label.split(' - ')[1];
+        const displayLabel = `${startLabel} - ${endLabel}`;
+
+        // Highlight selection button visually
+        document.querySelectorAll('#slotsContainer .btn').forEach(b => b.classList.remove('btn-success'));
+        if (btnEl) btnEl.classList.add('btn-success');
+
+        selectTime(btnEl.closest('.list-group-item'), date, startSlot.raw_time, displayLabel);
     }
 
     function selectTime(el, date, rawTime, label) {
